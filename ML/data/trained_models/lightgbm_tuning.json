@@ -1,0 +1,140 @@
+{
+  "model": "lightgbm",
+  "selection": "grouped cross-validation precision@K, then average precision",
+  "k": 10,
+  "cv_folds": 3,
+  "best_num_leaves": 7,
+  "trials": [
+    {
+      "num_leaves": 7,
+      "cv_precision_at_k": 0.47283333333333327,
+      "cv_average_precision": 0.7140666666666666,
+      "folds": [
+        {
+          "shifts": 42,
+          "eligible_orders": 560,
+          "reviewed_orders": 412,
+          "late_orders": 218,
+          "late_found": 201,
+          "precision_at_k": 0.4879,
+          "recall_at_k": 0.922,
+          "average_precision": 0.727,
+          "brier_score": 0.1771
+        },
+        {
+          "shifts": 42,
+          "eligible_orders": 559,
+          "reviewed_orders": 417,
+          "late_orders": 218,
+          "late_found": 194,
+          "precision_at_k": 0.4652,
+          "recall_at_k": 0.8899,
+          "average_precision": 0.6928,
+          "brier_score": 0.1893
+        },
+        {
+          "shifts": 42,
+          "eligible_orders": 561,
+          "reviewed_orders": 419,
+          "late_orders": 219,
+          "late_found": 195,
+          "precision_at_k": 0.4654,
+          "recall_at_k": 0.8904,
+          "average_precision": 0.7224,
+          "brier_score": 0.184
+        }
+      ]
+    },
+    {
+      "num_leaves": 15,
+      "cv_precision_at_k": 0.4639666666666667,
+      "cv_average_precision": 0.6879666666666667,
+      "folds": [
+        {
+          "shifts": 42,
+          "eligible_orders": 560,
+          "reviewed_orders": 412,
+          "late_orders": 218,
+          "late_found": 196,
+          "precision_at_k": 0.4757,
+          "recall_at_k": 0.8991,
+          "average_precision": 0.7108,
+          "brier_score": 0.1805
+        },
+        {
+          "shifts": 42,
+          "eligible_orders": 559,
+          "reviewed_orders": 417,
+          "late_orders": 218,
+          "late_found": 191,
+          "precision_at_k": 0.458,
+          "recall_at_k": 0.8761,
+          "average_precision": 0.6559,
+          "brier_score": 0.1969
+        },
+        {
+          "shifts": 42,
+          "eligible_orders": 561,
+          "reviewed_orders": 419,
+          "late_orders": 219,
+          "late_found": 192,
+          "precision_at_k": 0.4582,
+          "recall_at_k": 0.8767,
+          "average_precision": 0.6972,
+          "brier_score": 0.1885
+        }
+      ]
+    },
+    {
+      "num_leaves": 31,
+      "cv_precision_at_k": 0.4639333333333333,
+      "cv_average_precision": 0.6654333333333333,
+      "folds": [
+        {
+          "shifts": 42,
+          "eligible_orders": 560,
+          "reviewed_orders": 412,
+          "late_orders": 218,
+          "late_found": 193,
+          "precision_at_k": 0.4684,
+          "recall_at_k": 0.8853,
+          "average_precision": 0.6929,
+          "brier_score": 0.1855
+        },
+        {
+          "shifts": 42,
+          "eligible_orders": 559,
+          "reviewed_orders": 417,
+          "late_orders": 218,
+          "late_found": 192,
+          "precision_at_k": 0.4604,
+          "recall_at_k": 0.8807,
+          "average_precision": 0.6296,
+          "brier_score": 0.2076
+        },
+        {
+          "shifts": 42,
+          "eligible_orders": 561,
+          "reviewed_orders": 419,
+          "late_orders": 219,
+          "late_found": 194,
+          "precision_at_k": 0.463,
+          "recall_at_k": 0.8858,
+          "average_precision": 0.6738,
+          "brier_score": 0.1986
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "shifts": 9,
+    "eligible_orders": 360,
+    "reviewed_orders": 90,
+    "late_orders": 141,
+    "late_found": 67,
+    "precision_at_k": 0.7444,
+    "recall_at_k": 0.4752,
+    "average_precision": 0.6869,
+    "brier_score": 0.1876
+  }
+}
