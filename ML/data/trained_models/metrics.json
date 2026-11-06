@@ -1,0 +1,58 @@
+{
+  "source": "C:\\Itoni\\IT Consultant Netcompany\\backend\\ml\\data\\training_snapshots.csv",
+  "k": 10,
+  "models": {
+    "logistic_regression": {
+      "validation": {
+        "shifts": 9,
+        "eligible_orders": 360,
+        "reviewed_orders": 90,
+        "late_orders": 141,
+        "late_found": 70,
+        "precision_at_k": 0.7778,
+        "recall_at_k": 0.4965,
+        "average_precision": 0.7132,
+        "brier_score": 0.1883,
+        "snapshot_average_precision": 0.8239
+      },
+      "test": {
+        "shifts": 9,
+        "eligible_orders": 360,
+        "reviewed_orders": 90,
+        "late_orders": 154,
+        "late_found": 62,
+        "precision_at_k": 0.6889,
+        "recall_at_k": 0.4026,
+        "average_precision": 0.6849,
+        "brier_score": 0.2056,
+        "snapshot_average_precision": 0.8376
+      }
+    },
+    "lightgbm": {
+      "validation": {
+        "shifts": 9,
+        "eligible_orders": 360,
+        "reviewed_orders": 90,
+        "late_orders": 141,
+        "late_found": 61,
+        "precision_at_k": 0.6778,
+        "recall_at_k": 0.4326,
+        "average_precision": 0.6952,
+        "brier_score": 0.1897,
+        "snapshot_average_precision": 0.8433
+      },
+      "test": {
+        "shifts": 9,
+        "eligible_orders": 360,
+        "reviewed_orders": 90,
+        "late_orders": 154,
+        "late_found": 67,
+        "precision_at_k": 0.7444,
+        "recall_at_k": 0.4351,
+        "average_precision": 0.735,
+        "brier_score": 0.1939,
+        "snapshot_average_precision": 0.8533
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@
 import argparse
 from contextlib import closing
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from pathlib import Path
 import sqlite3
@@ -31,6 +31,43 @@ def _approved_line(raw: str) -> tuple[int, float]:
         return int(line), float(quantity)
     except ValueError as exc:
         raise argparse.ArgumentTypeError("--line requires CLAIM_LINE_ID:QUANTITY") from exc
+
+
+def _mock_recommendation(evidence: dict, allowed_actions: dict[str, str],
+                         decision_time: str) -> dict:
+    """Deterministic offline proposal for the seeded ETA-delay demonstration."""
+    features = evidence["features"]
+    if (features.get("eta_delay_minutes") or 0) > 0 and "confirm_route" in allowed_actions:
+        action = "confirm_route"
+        prefix = "eta_update:"
+        summary = (f"Mock recommendation: ask transport to confirm the route and revised ETA; "
+                   f"the observed delay is {features['eta_delay_minutes']:.0f} minutes.")
+        missing = ["carrier confirmation of the revised ETA"]
+    elif features.get("stock_status") in {"short", "backorder"} and "check_stock" in allowed_actions:
+        action = "check_stock"
+        prefix = "stock_event:"
+        summary = "Mock recommendation: ask the warehouse to verify stock availability before dispatch."
+        missing = ["current available quantity and replenishment time"]
+    else:
+        action = "review_conflicting_evidence"
+        prefix = ""
+        summary = "Mock recommendation: ask the planner to review the available delivery evidence."
+        missing = list(evidence.get("missing", []))[:8]
+    refs = [ref for ref in evidence["evidence_ids"] if not prefix or ref.startswith(prefix)]
+    if not refs:
+        refs = list(evidence["evidence_ids"][:1])
+    if not refs:
+        raise ValueError("mock recommendation requires at least one evidence reference")
+    deadline = datetime.fromisoformat(decision_time.replace("Z", "+00:00")) + timedelta(minutes=30)
+    return {
+        "action_id": action,
+        "summary": summary,
+        "supporting_evidence_ids": refs[:3],
+        "suggested_owner": evidence["owner_team"],
+        "suggested_response_deadline": deadline.isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "missing_information": missing,
+        "requires_human_review": True,
+    }
 
 
 def _inspect(db_path: Path) -> dict:
@@ -75,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
     agent.add_argument("--json", action="store_true")
     replay = subcommands.add_parser("replay", help="run a seeded scenario in a temporary database")
     replay.add_argument("--scenario", choices=["eta-delay"], required=True)
+    replay.add_argument("--mock-recommendation", action="store_true",
+                        help="return a deterministic validated action without calling Ollama")
     replay.add_argument("--json", action="store_true")
     scheduler = subcommands.add_parser("scheduler", help="process due orders")
     scheduler.add_argument("--once", action="store_true")
@@ -137,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
             from .agent.graph import run_agent
 
             root = Path(__file__).resolve().parents[2]
+            mock_client = _mock_recommendation if args.mock_recommendation else None
             with TemporaryDirectory() as folder:
                 path = Path(folder) / "replay.db"
                 with closing(sqlite3.connect(path)) as db:
@@ -145,9 +185,11 @@ def main(argv: list[str] | None = None) -> int:
                     db.executescript((root / "inference_seed.sql").read_text(encoding="utf-8"))
                 migrate(path, backup_path=Path(folder) / "replay.backup.db")
                 earlier = run_agent(path, 1002, _as_of("2026-11-06T11:40:00Z"),
-                                    trigger_id="replay:eta-delay:before", offline=True)
+                                    trigger_id="replay:eta-delay:before", offline=True,
+                                    recommendation_client=mock_client)
                 later = run_agent(path, 1002, _as_of("2026-11-06T12:00:00Z"),
-                                  trigger_id="replay:eta-delay:after", offline=True)
+                                  trigger_id="replay:eta-delay:after", offline=True,
+                                  recommendation_client=mock_client)
                 result = {"scenario": args.scenario, "before": earlier, "after": later}
         elif args.command == "scheduler":
             from .scheduler import scheduler_loop, scheduler_once
@@ -221,7 +263,16 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "replay":
         for name in ("before", "after"):
             row = result[name]
-            print(f"{name}: p_late={row.get('p_late')} band={row.get('risk_band')} eta_delay_minutes={row.get('feature_values', {}).get('eta_delay_minutes')}")
+            recommendation = row.get("recommendation")
+            action = recommendation["action_id"] if recommendation else row.get("recommendation_error")
+            print(f"{name}: p_late={row.get('p_late'):.3f} band={row.get('risk_band')} "
+                  f"eta_delay_minutes={row.get('feature_values', {}).get('eta_delay_minutes')} "
+                  f"action={action} alert={row.get('notification_id') or 'no new alert'}")
+            if recommendation:
+                print(f"  recommendation: {recommendation['summary']}")
+                print(f"  owner: {recommendation['suggested_owner']} | "
+                      f"respond by: {recommendation['suggested_response_deadline']} | "
+                      f"evidence: {', '.join(recommendation['supporting_evidence_ids'])}")
     elif args.command == "scheduler":
         print(f"Processed {len(result['runs'])} due orders")
     else:

@@ -16,9 +16,10 @@ class CFG:
     MODELS_DIR = DEFAULT_MODELS_DIR
     K = 10
     PARAM_GRID = {
+        "metric": ["auc", "binary_logloss"],
         "num_leaves": (7, 15, 31),
         "n_estimators": (100, 150, 200),
-        "learning_rate": (0.03, 0.1),
+        "learning_rate": (0.03, 0.05, 0.1),
         "min_child_samples": (20, 40),
         "reg_lambda": (0.0, 1.0),
     }

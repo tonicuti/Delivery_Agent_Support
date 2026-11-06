@@ -1,134 +1,101 @@
-# Swedish Delivery Risk Pilot Database Knowledge
+# Swedish Delivery Risk Database Knowledge
 
-This document describes the business rules and current SQLite walkthrough for a delivery delay Agent. It is intended for engineers implementing ingestion, scoring, planner recommendations, redelivery handoffs, and evaluation. The working demo is defined by [schema.sql](schema.sql), populated by [seed.sql](seed.sql), and created with [run_demo.py](run_demo.py). The SQL files are the authority for columns and constraints that exist today. Sections marked **Planned** describe agreed behavior that the demo schema does not yet enforce.
+This document describes the fresh SQLite schema used to support the Swedish delivery-risk Agent. It covers how source records become model inputs, how the Agent uses a prediction, and how authorized replacement work is tracked. The schema is in `schema_fresh.sql`. The synthetic inference fixture is in `inference_seed.sql`. The original four-order walkthrough uses an older schema and should not be used as the specification for this database.
 
-## Purpose and scope
+## Business boundary
 
-The Swedish pilot helps one regional planning team identify orders whose original planned deliveries may miss the customer promise. Warehouse staff enter packing and dispatch events, transport coordinators enter ETA changes, and staff at handover enter accepted, damaged, and missing quantities. A representative inspects a damage or shortage claim and may authorize reshipment. The assigned order management team handles that reshipment urgently.
+An order is one customer transaction for one commodity category, one delivery site, and one agreed delivery window. It can contain multiple product lines in that category and can be fulfilled by multiple planned shipments. One physical shipment can carry items from several orders and visit several sites. Each order retains its own promise, risk assessment, and assigned order management team.
 
-Every example in the database is synthetic. The values in `risk_score` are illustrative inputs, not measured model accuracy. The pilot compares Logistic Regression and LightGBM only after suitable real outcome data exists.
+The planning region comes from the delivery site. The regional planning team reviews model-ranked orders across warehouses. A representative-authorized replacement goes to the order's assigned management team immediately.
 
-## Shared vocabulary
+The model predicts whether **original planned delivery** will miss the customer promise. It does not predict reshipment. Once a representative authorizes reshipment, predictive scoring stops for that order. Its urgent replacement state clears when the customer accepts all approved replacement units.
 
-| Term | Meaning |
-|---|---|
-| Order | One customer transaction for one commodity category, one destination, and one agreed delivery window. It can contain multiple products within that category. |
-| Order line | One exact product and required quantity. Extra units of another product cannot cover a shortage. |
-| Promise version | The delivery window agreed with the customer at a point in time. Preserve each revision. The window end is the delay cutoff. |
-| Shipment | One physical movement. It can carry items for more than one order. An order can use multiple shipments. |
-| Planned installment | An original shipment item allocated before delivery. Its remaining quantity is expected later under the original plan. |
-| Handover | A recorded arrival at the delivery site, with item-level accepted, damaged, and missing quantities. Multiple handovers can refer to one shipment. |
-| Claim | A reported discrepancy for one order that awaits or has received representative inspection. |
-| Authorization | A representative's decision that specified disputed quantities require reshipment. |
-| Reshipment | Replacement goods linked to an authorization, still belonging to the original customer order. It has its own tracking ID and customer-agreed replacement window. |
-| Snapshot | Order and delivery evidence available at a specific scoring time, including the promise version. |
-| Risk score | The model's `p_late` estimate for missing the original delivery promise. |
-| High-risk override | A rule-driven state caused by authorized reshipment while approved replacement units remain unaccepted. |
-
-## Relationships
+## Core relationships
 
 ```mermaid
 flowchart LR
-  O[Customer order] --> L[Order lines]
-  O --> P[Promise versions]
-  L --> SI[Shipment items]
-  S[Shipments] --> SI
-  S --> H[Handovers]
-  SI --> HL[Handover lines]
-  H --> HL
-  HL --> C[Claim lines]
-  C --> I[Inspection and authorization]
-  I --> RA[Replacement allocation]
-  RA --> SI
-  O --> OS[Order snapshots]
-  P --> OS
-  OS --> RS[Risk scores]
-  RS --> SL[Saved shift candidates]
+    PR[planning_region] --> DS[delivery_site]
+    DS --> O[customer_order]
+    C[customer] --> O
+    MT[management_team] --> O
+    O --> PV[promise_version]
+    O --> OL[order_line]
+    P[product] --> OL
+    OL --> SI[shipment_item]
+    S[shipment] --> SI
+    S --> ST[shipment_stop]
+    ST --> H[handover]
+    SI --> HL[handover_line]
+    H --> HL
+    HL --> CL[claim_line]
+    CL --> AL[authorization_line]
+    AL --> SI
 ```
 
-`shipment_item` joins a physical shipment to an order line. Orders 1003 and 1004 share shipment `S34`, while order 1001 uses two different shipments. Replacement shipment `S35` carries two boards for order 1003 and is linked to authorization `A1003-1`.
+`shipment_stop` gives a shared truck a separate destination, stop sequence, and planned ETA for each site. `eta_update` belongs to a stop. `shipment_item` links the goods on that truck to an exact order line. A replacement shipment item references its `authorization_line`.
 
-## Tables implemented in the walkthrough
+## Sources of model inputs
 
-| Area | Tables | Current role |
-|---|---|---|
-| Catalog and orders | `commodity_category`, `product`, `customer_order`, `order_line`, `promise_version` | Products, quantities, and the agreed original window. |
-| Transport and receipt | `shipment`, `shipment_item`, `shipment_eta_update`, `handover`, `handover_line` | Original and replacement movements, ETA changes, and item-level handover facts. |
-| Claims and redelivery | `claim`, `claim_line`, `order_team`, `inspection`, `replacement_authorization`, `redelivery_task`, `replacement_allocation`, `replacement_promise` | Report, inspect, approve, assign, and track replacement. |
-| Prediction and planning | `order_snapshot`, `risk_score`, `shift_list`, `shift_candidate` | Preserve two illustrative scores and one frozen shift entry. |
+The database stores source facts before producing `order_snapshot`. Staff or the retailer supply internal facts. API collectors supply external observations. The snapshot freezes the derived model row at an explicit `as_of_utc`.
 
-The demo uses a single product line in each order. The business definition permits multiple lines within one commodity category. The current schema has foreign keys for the basic relationships, but application logic must still enforce several cross-table quantity and ownership rules listed below.
-
-## Time and visibility rules
-
-Store timestamps in UTC using a consistent format, such as `2026-11-06T15:00:00Z`. Keep the delivery site's IANA time zone, such as `Europe/Stockholm`, with each customer promise. In the demo on 6 November 2026, the 16:00 Stockholm deadline is `15:00:00Z`. Acceptance at exactly the deadline counts as on time.
-
-Distinguish **occurred at** from **recorded at**. A handover can happen at 10:00 and be entered at 10:20. A score calculated at 10:10 may use only records available by 10:10. The ETA example uses `recorded_at_utc` to decide whether an update was visible. Promise changes also need both effective and recorded times in a later schema revision. A snapshot must retain the exact promise version and feature values used for its score.
-
-For a shared shipment serving several sites, arrival estimates belong to the relevant delivery stop or order. The current `shipment_eta_update` table is shipment-wide, which is sufficient for the four demo orders but needs refinement for a broader pilot.
-
-## State transitions the Agent must respect
-
-1. **Order import.** The retailer's order system supplies a stable source ID, destination, category, products, quantities, agreed window, and assigned order management team. The destination assigns the planning region. Repeated imports update the same source order while preserving promise revisions. **Planned.** The demo creates orders directly and lacks source-system, destination, and planning-region columns.
-2. **Original delivery progress.** Original shipment allocations and staff events show what remains to be packed, dispatched, and accepted. A planned second installment is normal progress. Accepted quantities count toward the matching product line.
-3. **Claim opening.** A damaged or missing quantity recorded at handover, or reported later, opens an inspection claim. The claim itself does not trigger the reshipment override.
-4. **Representative decision.** Approval records the affected claim lines, quantities, representative, and decision time. In one transaction, it starts the override, stops future model scoring for the order, and creates an urgent task for its assigned order management team. A declined claim is retained without a replacement task. A repeated approval request must resolve to the same authorization and task.
-5. **Replacement handling.** The team confirms a customer-agreed replacement window. Transport can revise the ETA for the replacement shipment. Each accepted replacement unit reduces the approved outstanding balance. Dispatching it does not reduce that balance.
-6. **Override resolution.** The override is active while any approved replacement quantity is outstanding. It clears when every approved replacement quantity is accepted. Model scoring stays stopped for an order that has required reshipment. Other originally planned installments may still be outstanding.
-
-The Agent can recommend that staff inspect, prioritize, contact a warehouse, or confirm a route. A representative authorizes reshipment. The Agent should record its recommendation and evidence before alerting staff.
-
-## Risk and worklist rules
-
-The proposed model estimates `p_late`, the probability that original planned delivery will miss the promise version attached to its snapshot. The overview proposes Low below 0.20, Medium from 0.20 through 0.50, and High above 0.50. High due to model output and High due to authorized reshipment need distinct reason codes and owners.
-
-Score eligible open orders after meaningful source changes. These include order or promise updates, stock changes, warehouse milestones, shipment assignment, route or ETA changes, and relevant travel or weather changes. Scheduled rescoring covers open orders as their deadline approaches. Stop scoring on delivery, cancellation, or reshipment authorization. The exact timer policy is a deployment setting.
-
-At shift start, the regional planner selects the latest available score for each eligible order, ranks distinct orders, and freezes the top K according to that team's review capacity. The candidate population and ranks must be retained to calculate Precision@K, Recall@K, and average precision. Later scores can change the live queue but cannot rewrite the saved shift view. Authorized redelivery tasks go directly to the order's assigned management team and use that team's capacity.
-
-An alert episode should send one initial staff alert containing `p_late`, the promise, hours left, reasons, and recommended action. Follow-ups occur for material worsening, a changed recommendation, or an unacknowledged escalation deadline. Delivery, cancellation, or resolved risk closes the episode. **Planned.** The current schema has no episode, recommendation, playbook, alert, acknowledgment, or escalation tables.
-
-## Outcomes and evaluation
-
-| Outcome | Rule |
+| Model input | Source and derivation |
 |---|---|
-| Customer promise met | Every order line reaches its required acceptable quantity by the relevant customer promise end. Approved later claims can change the acceptable balance. Report against original and final agreed promises. |
-| Original delivery on time | The last originally planned installment reaches its recorded completion milestone by the promise end. Exclude replacement movements. |
-| Replacement promise met | All units covered by the agreed replacement window are accepted by its end. |
-| Prediction label | Evaluate each pre-authorization score against original delivery completion and the promise version that score referenced. Retain pre-authorization scores even if a claim is later approved. Mark the label unknown when original completion cannot be independently established. |
+| `hours_to_deadline` | Difference between `as_of_utc` and the visible `promise_version.window_end_utc`, in hours. |
+| `item_count` | Number of `order_line` rows. |
+| `item_quantity` | Sum of `order_line.ordered_qty`. |
+| `weight_kg`, `volume_m3` | Sum of line quantity multiplied by the product's unit measurements. Return unknown if a required measurement is absent. |
+| `special_handling` | 1 if any ordered product requires it, otherwise 0. |
+| `customer_type` | `customer.customer_type` through `customer_order`. |
+| `stock_status` | Latest visible `stock_event` per line. For the order, the worst status wins: backorder, short, then in stock. Unknown if any line has no visible status. |
+| `warehouse_stage` | Latest visible `warehouse_event` for each outstanding original shipment. The least advanced stage represents the order. |
+| `actual_departure_delay_minutes` | Actual departure event time minus `shipment.planned_departure_at_utc`. Unknown until departure is recorded for the relevant original shipments. |
+| `eta_delay_minutes` | Latest expected completion of the outstanding original shipments minus the latest planned completion. Unknown until an applicable ETA update is visible. |
+| `warehouse`, `carrier` | Names from the original outstanding shipments. The current feature builder returns unknown if those shipments have multiple distinct values. |
+| `region` | `planning_region.name` through the order's delivery site. |
+| `travel_hours` | `travel_observation.travel_seconds / 3600` for the outstanding original shipment with the latest planned stop ETA. |
+| `holiday_flag` | Latest visible `holiday_observation` for the region and the promise end's local date, if still fresh under the feature builder's seven-day rule. |
+| `weather_severity` | Intended to be derived from `weather_observation`. The current feature builder leaves it unknown because the mapping from forecast values to 0, 1, and 2 has not been validated against the training data. |
 
-For order 1003, original handover `H34` occurred Friday at 15:45 Stockholm time and was on time. Two damaged boards were rejected, then accepted on Monday after representative authorization. The full acceptable customer order missed Friday's original promise. Both replacements arrived by Monday's agreed 11:00 deadline. These are three separate results.
+The saved LightGBM pipeline expects exactly these 17 features, in the order defined by `src/backend/features.py`. `src/backend/predictor.py` checks feature names and types, then returns `p_late`. A missing value is represented as `None` in Python and `NULL` in SQLite. The model pipeline imputes missing values according to its saved preprocessing steps.
 
-## Four synthetic orders
+The snapshot also stores the promise version, deadline, calculation time, and feature schema version. `risk_score` references that snapshot and stores the model version and probability. `original_late` belongs in `original_delivery_outcome` after the original delivery outcome is known. Train, validation, and test membership belongs in `training_assignment`, with all snapshots of one order assigned to the same split.
 
-| Order | Scenario | Verified result |
-|---|---|---|
-| 1001 | 100 pine boards in planned installments of 60 and 40. | 100 accepted by Friday 15:30 Stockholm, on time. |
-| 1002 | 20 oak boards, ETA revised from 15:00 to 17:00 at 09:00. | All accepted at 16:45, 45 minutes late. The revised ETA was 15 minutes later than actual arrival. |
-| 1003 | 10 pine boards on `S34`, eight accepted and two damaged. Approval triggers two replacement boards on `S35`. | One claim and one urgent task. Override remains active after one replacement is accepted and clears after the second. Original handover on time, customer promise late, replacement promise met. |
-| 1004 | 12 oak boards share `S34` with order 1003. | All accepted on time. No claim or redelivery task. |
+## Evidence timing and replay
 
-Order 1002 has illustrative scores of 15% before the ETA update and 75% after it. The saved demo shift entry retains the 15% score visible at shift start, while the latest live score is 75%.
+Every scoring run receives a decision time. A warehouse or stock event may be used only when both its occurrence and recording times are no later than that decision time. An ETA update follows the same rule. An API observation may be used only after `fetched_at_utc`. A forecast additionally has a `valid_at_utc` describing the future period it covers. Promise selection uses both `recorded_at_utc` and `effective_at_utc`.
 
-## Agent read and write contract
+Order-level ETA and warehouse features consider **outstanding original shipments**. Handover records identify which original allocations have already been accepted. Replacement shipments are excluded from model features. A planned second installment is part of normal delivery and does not cause a reshipment override.
 
-The Agent should read an order by its stable ID, fetch its current promise and original shipment allocations, then fetch events and ETA updates recorded by the decision time. It should gather claims and approved replacement balances separately. A risk response should include the score ID, snapshot ID, model version, evidence timestamps, reason codes, current owner, and relevant delivery deadline. The Agent must distinguish a missing source value from a confirmed value.
+The current schema does not version product measurements, shipment assignment, or planned shipment times. Historical replay therefore requires fixtures establishing that those values were already known at the decision time. A future version should record when these mutable inputs become effective and visible.
 
-Actions should append events or create versioned records. They should not overwrite historical promises, ETAs, handovers, scores, or representative decisions. Use stable command or source event IDs for retries. Put approval, override state change, and task creation in one transaction. Put alert episode updates and outbound notification intent in one transaction, then deliver notifications through a retryable worker. **Planned.** The demo shows the data relationships and uses unique IDs, but it does not implement these services or transactional workflows.
+## External API observations
 
-## Current schema limits before building the full Agent
+`weather_observation` stores provider, forecast run time, valid time, fetch time, and raw wind, precipitation, and thunderstorm fields for a site. `travel_observation` stores provider, requested departure, fetched time, and travel seconds for a shipment stop. `holiday_observation` stores provider, region, local date, holiday flag, and fetched time. Collectors should preserve source identity and time rather than replacing the latest row.
 
-- `customer_order` lacks source-system identity, customer, delivery site, planning region, cancellation, and explicit owner for all orders. The demo's `order_team` has one row for order 1003.
-- `shipment` lacks origin warehouse, carrier, route, vehicle, stops, and explicit original-versus-replacement type. Replacement type is inferred from `replacement_allocation`.
-- `handover_line` lacks a database constraint preventing cumulative accepted or disputed quantities from exceeding an item's allocation. The claim and authorization tables likewise need quantity reconciliation checks.
-- A later claim against units initially recorded as accepted needs a separate accepted-quantity adjustment event. The current customer-completion calculation handles the demo's damage recorded at handover.
-- `order_snapshot` stores one ETA and promise end for the demo. A full scoring snapshot needs all source features, missingness, provenance, and an immutable model input record. No trained model is included.
-- Risk episodes, recommendations, playbooks, alerts, and acknowledgment are design requirements that still need tables and application workflows.
-- The shift demo freezes one order with K = 1. Region membership and full candidate ranking still need implementation.
-- Cross-table invariants require application transactions or database triggers. Foreign keys alone do not enforce product category membership, exact order ownership of a replacement, approval quantity ceilings, or scoring eligibility.
+The current feature builder reads travel and holiday observations. Weather values are stored but are not yet converted to the model's synthetic `weather_severity` categories. The definition of severity and the training data must be aligned before this feature is enabled for scoring. An unavailable or stale external observation remains unknown rather than being guessed.
 
-## Run the walkthrough yourself
+## Delivery, claims, and replacement
 
-From the folder containing the three demo files, run `py run_demo.py`. It creates `swedish_delivery_replay.db` only when that filename is available. You can choose a different new path with `py run_demo.py path\to\new_database.db`. A valid replay reports four orders, five shipments, six handovers, database integrity `ok`, and zero broken foreign-key links.
+At each handover, `handover_line` records accepted, damaged, and missing quantities for an exact shipment item. A discrepancy opens a `claim` for one order. The report itself does not authorize another trip or change the order to replacement High risk.
 
-The next implementation slice is to add source order identity, delivery sites and planning-region assignment, plus explicit event and quantity checks. Then implement the Agent's evidence query and scoring eligibility against a fixed decision timestamp before adding recommendations and alerts.
+A representative records an `inspection`. Approved quantities are recorded in `authorization_line`. Approval must atomically create an urgent `redelivery_task` for the order's assigned management team and stop future predictive scoring. A replacement shipment item references the authorization line and has its own customer-agreed `replacement_promise`. Its ETA can change through the same stop-level `eta_update` process.
+
+Approved quantity minus accepted replacement quantity gives the outstanding replacement balance. The rule-driven High-risk override remains active while that balance is positive. It clears when all approved units have been accepted. Model scoring stays stopped after the override clears.
+
+Preserve three outcomes separately. **Original delivery completion** evaluates the model's pre-authorization predictions. **Full acceptable customer-order completion** measures the original customer promise. **Replacement completion** measures the agreed replacement window. If the original completion cannot be independently established, the model label is unknown.
+
+The schema provides keys and checks for many individual rows. Application transactions or additional database triggers still need to enforce cumulative quantity ceilings, consistent handover site and shipment item, claim ownership, authorization ownership and quantity, and retry-safe task creation.
+
+## Planner workflow
+
+Eligible open orders are rescored after meaningful events and on a schedule near their promise end. A probability below 0.20 is Low, from 0.20 through 0.50 is Medium, and above 0.50 is High. A High model score leads the Agent to retrieve evidence and recommend a permitted action for regional planner review. The Agent does not authorize reshipment.
+
+At the start of a shift, `shift_list` records the planning region and review capacity K. `shift_candidate` freezes distinct orders, their exact `risk_score` IDs, ranks, and selection status. Later scores can update a live worklist while preserving the shift-start ranking for Precision@K and Recall@K.
+
+Risk episodes, recommendations, playbooks, alerts, acknowledgments, and scheduler state are not yet tables in `schema_fresh.sql`. They are subsequent implementation work.
+
+## Current runnable inference fixture
+
+`inference_seed.sql` inserts three synthetic open orders into a new database created from `schema_fresh.sql`. At decision time `2026-11-06T12:00:00Z`, order 1001 is in stock and packed, order 1002 is short with a two-hour ETA delay, and order 1003 has a backordered line and two outstanding original shipments. The seed contains no scores or delivery outcomes.
+
+`run_inference_demo.py` builds the 17 features and invokes the saved LightGBM pipeline. It prints probabilities and does not persist snapshots or scores. A test against a fresh database produced approximately 57.6%, 65.1%, and 94.5% for orders 1001, 1002, and 1003. These are model outputs on synthetic examples, not measured performance on real deliveries.
