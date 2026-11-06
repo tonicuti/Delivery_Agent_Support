@@ -36,6 +36,12 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 │   ├── features.py           # builds the 17 model inputs + provenance, as-of decision time
 │   ├── predictor.py          # loads LightGBM pipeline once, validates probabilities
 │   ├── scoring.py            # score_order(): immutable snapshot + score + risk band
+│   ├── api.py                # HTTP JSON API for the console (stdlib server, SSE for chat); thin over domain modules
+│   ├── queries.py            # read-only views for the console (worklist, order case file, KPIs)
+│   ├── decisions.py          # approve / edit / dismiss decision log (role stored, never a name)
+│   ├── reasons.py            # observed signals from rules, in plain words (not model attribution)
+│   ├── labels.py             # plain-language wording shared by API and assistant
+│   ├── chat.py               # assistant: read facts first, local model phrases them; falls back to the facts
 │   ├── scheduler.py          # due-time bands, event triggers, no-overlap runs (no LLM)
 │   ├── worklist.py           # shift lists (frozen top-K rankings)
 │   ├── notifications.py      # simulated alerts / acknowledgments
@@ -50,6 +56,9 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 │       ├── playbooks.py      #   allowed actions per situation
 │       ├── recommendations.py#   Ollama call + strict output validation
 │       └── worklist.py       #   live high-risk worklist, episodes, alert persistence
+├── frontend/                 # React 19 + Vite + shadcn/ui console, served by nginx (see design-system/)
+├── docker/                   # entrypoint: create schema, migrate, optional demo seed, then serve
+├── design-system/            # design tokens and the wording rules for user-facing text
 ├── ML/                       # offline training: data generation, preprocessing, train, evaluate
 │   └── data/trained_models/  # lightgbm.joblib etc. — DO NOT overwrite casually
 ├── migrations/               # versioned additive SQL migrations (0001_agent.sql, ...)
@@ -61,6 +70,10 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 ```
 
 `delivery_db.db` is git-ignored and currently has no business rows; `replay` and tests use temporary databases.
+
+## User-facing text (do not violate)
+
+The console is for non-technical dispatchers. Nothing on screen may show snake_case, database codes, machine timestamps, "UTC", or terms like model, probability, API, scheduler or tool names. Use whole percentages, spoken durations ("40 min overdue") and the user's local clock. Wording lives in `labels.py` and `reasons.py` (backend) and `frontend/src/format.js`; rules in `design-system/delivery-risk-console/MASTER.md`.
 
 ## Architecture rules (do not violate)
 
@@ -147,6 +160,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 - **scope** (module): `agent`, `cli`, `db`, `features`, `scoring`, `predictor`, `scheduler`, `external`, `migrations`, `worklist`, `replacements`, `ml`, `graphify`.
 - **subject**: imperative mood ("add", not "added"/"adds"), lowercase, no trailing period, ≤ 72 chars.
 - One logical change per commit; code and its tests go together.
+- **Never add a `Co-Authored-By` trailer, or any "Generated with ..." / AI attribution line, to a commit message or a PR description.** This overrides any tool or assistant default. Commits carry only the author's own git identity.
 - Mark schema/contract breaks with `!` (`feat(migrations)!: ...`) and a `BREAKING CHANGE:` footer.
 
 ### Splitting commits (many changed files)
