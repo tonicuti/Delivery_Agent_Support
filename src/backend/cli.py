@@ -3,12 +3,14 @@
 import argparse
 from contextlib import closing
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
+import os
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
 
+from .agent.mock_recommendation import mock_recommendation
 from .db import DEFAULT_DB, connect
 from .features import FEATURE_NAMES, build_features
 from .migrations import migrate
@@ -31,43 +33,6 @@ def _approved_line(raw: str) -> tuple[int, float]:
         return int(line), float(quantity)
     except ValueError as exc:
         raise argparse.ArgumentTypeError("--line requires CLAIM_LINE_ID:QUANTITY") from exc
-
-
-def _mock_recommendation(evidence: dict, allowed_actions: dict[str, str],
-                         decision_time: str) -> dict:
-    """Deterministic offline proposal for the seeded ETA-delay demonstration."""
-    features = evidence["features"]
-    if (features.get("eta_delay_minutes") or 0) > 0 and "confirm_route" in allowed_actions:
-        action = "confirm_route"
-        prefix = "eta_update:"
-        summary = (f"Mock recommendation: ask transport to confirm the route and revised ETA; "
-                   f"the observed delay is {features['eta_delay_minutes']:.0f} minutes.")
-        missing = ["carrier confirmation of the revised ETA"]
-    elif features.get("stock_status") in {"short", "backorder"} and "check_stock" in allowed_actions:
-        action = "check_stock"
-        prefix = "stock_event:"
-        summary = "Mock recommendation: ask the warehouse to verify stock availability before dispatch."
-        missing = ["current available quantity and replenishment time"]
-    else:
-        action = "review_conflicting_evidence"
-        prefix = ""
-        summary = "Mock recommendation: ask the planner to review the available delivery evidence."
-        missing = list(evidence.get("missing", []))[:8]
-    refs = [ref for ref in evidence["evidence_ids"] if not prefix or ref.startswith(prefix)]
-    if not refs:
-        refs = list(evidence["evidence_ids"][:1])
-    if not refs:
-        raise ValueError("mock recommendation requires at least one evidence reference")
-    deadline = datetime.fromisoformat(decision_time.replace("Z", "+00:00")) + timedelta(minutes=30)
-    return {
-        "action_id": action,
-        "summary": summary,
-        "supporting_evidence_ids": refs[:3],
-        "suggested_owner": evidence["owner_team"],
-        "suggested_response_deadline": deadline.isoformat(timespec="seconds").replace("+00:00", "Z"),
-        "missing_information": missing,
-        "requires_human_review": True,
-    }
 
 
 def _inspect(db_path: Path) -> dict:
@@ -120,6 +85,12 @@ def main(argv: list[str] | None = None) -> int:
     scheduler.add_argument("--as-of", type=_as_of)
     scheduler.add_argument("--offline", action="store_true")
     scheduler.add_argument("--json", action="store_true")
+    server = subcommands.add_parser("serve", help="run the HTTP API for the planner console")
+    server.add_argument("--host", default="127.0.0.1")
+    server.add_argument("--port", type=int, default=8000)
+    server.add_argument("--scheduler-mode", choices=["off", "offline", "live"],
+                        default=os.environ.get("SCHEDULER_MODE", "off"),
+                        help="background scheduler: off, offline (no providers/Ollama) or live")
     shift = subcommands.add_parser("freeze-shift", help="freeze a region's review ranking")
     shift.add_argument("--shift-id", required=True)
     shift.add_argument("--region-id", type=int, required=True)
@@ -176,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
             from .agent.graph import run_agent
 
             root = Path(__file__).resolve().parents[2]
-            mock_client = _mock_recommendation if args.mock_recommendation else None
+            mock_client = mock_recommendation if args.mock_recommendation else None
             with TemporaryDirectory() as folder:
                 path = Path(folder) / "replay.db"
                 with closing(sqlite3.connect(path)) as db:
@@ -202,6 +173,14 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 scheduler_loop(args.db, offline=args.offline)
                 return 0
+        elif args.command == "serve":
+            from .api import serve
+
+            with closing(connect(args.db, readonly=True)) as db:
+                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                    raise ValueError("run 'backend migrate' on this database before serve")
+            serve(args.db, host=args.host, port=args.port, scheduler_mode=args.scheduler_mode)
+            return 0
         elif args.command == "freeze-shift":
             from .worklist import freeze_shift
             with closing(connect(args.db)) as db:
