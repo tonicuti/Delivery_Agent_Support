@@ -1,0 +1,481 @@
+{
+  "communities": {
+    "0": [
+      "dataclasses",
+      "langgraph_graph",
+      "src_backend_agent_graph",
+      "src_backend_agent_graph_build_graph_high_worklist",
+      "src_backend_agent_graph_rationale_1",
+      "src_backend_agent_state",
+      "src_backend_agent_state_agentstate",
+      "src_backend_agent_state_rationale_1",
+      "src_backend_agent_worklist",
+      "src_backend_agent_worklist_close_monitoring",
+      "src_backend_agent_worklist_ensure_high_risk",
+      "src_backend_agent_worklist_persist_recommendation_and_alert",
+      "src_backend_agent_worklist_preview_high_risk",
+      "src_backend_agent_worklist_py_connection",
+      "src_backend_agent_worklist_py_datetime",
+      "src_backend_agent_worklist_rationale_1",
+      "src_backend_agent_worklist_rationale_79",
+      "src_backend_agent_worklist_write_high_risk",
+      "src_backend_eligibility",
+      "src_backend_eligibility_check_eligibility",
+      "src_backend_eligibility_eligibilityresult",
+      "src_backend_eligibility_eligibilityresult_eligible",
+      "src_backend_eligibility_py_connection",
+      "src_backend_eligibility_py_datetime",
+      "src_backend_eligibility_rationale_1",
+      "src_backend_features",
+      "src_backend_features_parse_utc",
+      "src_backend_features_py_datetime",
+      "src_backend_features_rationale_1",
+      "src_backend_features_utc_text",
+      "src_backend_scoring",
+      "src_backend_scoring_from_run",
+      "src_backend_scoring_json",
+      "src_backend_scoring_py_connection",
+      "src_backend_scoring_py_datetime",
+      "src_backend_scoring_rationale_1",
+      "src_backend_scoring_rationale_56",
+      "src_backend_scoring_score_order",
+      "src_backend_scoring_scoreresult",
+      "src_backend_worklist",
+      "src_backend_worklist_freeze_shift",
+      "src_backend_worklist_py_connection",
+      "src_backend_worklist_py_datetime",
+      "src_backend_worklist_rationale_1",
+      "src_backend_worklist_rationale_12",
+      "typeddict",
+      "typing",
+      "uuid"
+    ],
+    "1": [
+      "argparse",
+      "src_backend_cli",
+      "src_backend_cli_approved_line",
+      "src_backend_cli_as_of",
+      "src_backend_cli_inspect",
+      "src_backend_cli_main",
+      "src_backend_cli_mock_recommendation",
+      "src_backend_cli_py_datetime",
+      "src_backend_cli_py_path",
+      "src_backend_cli_rationale_1",
+      "src_backend_cli_rationale_38",
+      "src_backend_init",
+      "src_backend_init_rationale_1",
+      "src_backend_notifications",
+      "src_backend_notifications_acknowledge_alert",
+      "src_backend_notifications_py_connection",
+      "src_backend_notifications_py_datetime",
+      "src_backend_notifications_rationale_1",
+      "src_backend_notifications_record_feedback",
+      "src_backend_replacements",
+      "src_backend_replacements_approve_replacement",
+      "src_backend_replacements_py_connection",
+      "src_backend_replacements_py_datetime",
+      "src_backend_replacements_rationale_1",
+      "src_backend_replacements_rationale_14",
+      "src_backend_replacements_rationale_93",
+      "src_backend_replacements_refresh_replacement_tasks",
+      "tests_test_cli_clitests",
+      "tests_test_cli_clitests_test_inspect_and_features_against_temporary_database",
+      "tests_test_cli_clitests_test_mock_replay_prints_recommendations_and_alerts",
+      "tests_test_cli_clitests_test_score_command_persists_one_snapshot_on_retry",
+      "tests_test_cli_clitests_test_supplied_seed_exposes_late_eta_without_touching_live_db",
+      "tests_test_replacements_replacementtests",
+      "tests_test_replacements_replacementtests_test_authorization_stops_scoring_and_requires_accepted_quantity"
+    ],
+    "2": [
+      "date",
+      "json",
+      "math",
+      "src_backend_external_context",
+      "src_backend_external_context_fetch_json",
+      "src_backend_external_context_get_context",
+      "src_backend_external_context_live_enrich",
+      "src_backend_external_context_py_connection",
+      "src_backend_external_context_py_datetime",
+      "src_backend_external_context_rationale_1",
+      "src_backend_external_context_scope",
+      "src_backend_external_context_scope_json",
+      "src_backend_external_holidays",
+      "src_backend_external_holidays_holiday_url",
+      "src_backend_external_holidays_rationale_1",
+      "src_backend_external_holidays_validate_holidays",
+      "src_backend_external_weather",
+      "src_backend_external_weather_classify_weather",
+      "src_backend_external_weather_py_datetime",
+      "src_backend_external_weather_rationale_1",
+      "src_backend_external_weather_rationale_12",
+      "src_backend_external_weather_validate_weather",
+      "src_backend_external_weather_weather_url",
+      "tests_test_external_context_externalcontexttests",
+      "tests_test_external_context_externalcontexttests_test_demo_weather_thresholds",
+      "tests_test_external_context_externalcontexttests_test_fresh_stale_and_historical_visibility",
+      "tests_test_external_context_externalcontexttests_test_fresh_stale_and_historical_visibility_fake_fetch",
+      "tests_test_external_context_externalcontexttests_test_live_fetch_advances_decision_time_to_evidence_receipt",
+      "tests_test_external_context_externalcontexttests_test_live_fetch_advances_decision_time_to_evidence_receipt_fake_fetch",
+      "urllib_parse"
+    ],
+    "3": [
+      "joblib",
+      "lightgbm",
+      "ml_evaluate_models",
+      "ml_evaluate_models_compare_models",
+      "ml_evaluate_models_evaluate_shift_start",
+      "ml_evaluate_models_rationale_1",
+      "ml_evaluate_models_rationale_16",
+      "ml_preprocess_delivery_risk",
+      "ml_preprocess_delivery_risk_load_dataset",
+      "ml_preprocess_delivery_risk_make_preprocessor",
+      "ml_preprocess_delivery_risk_prepare_data",
+      "ml_preprocess_delivery_risk_rationale_1",
+      "ml_preprocess_delivery_risk_rationale_27",
+      "ml_train_lightgbm",
+      "ml_train_lightgbm_cfg",
+      "ml_train_lightgbm_rationale_1",
+      "ml_train_lightgbm_train_lightgbm",
+      "ml_train_logistic_regression",
+      "ml_train_logistic_regression_cfg",
+      "ml_train_logistic_regression_rationale_1",
+      "ml_train_logistic_regression_train_logistic_regression",
+      "numpy",
+      "pandas",
+      "sklearn_compose",
+      "sklearn_impute",
+      "sklearn_linear_model",
+      "sklearn_metrics",
+      "sklearn_model_selection",
+      "sklearn_pipeline",
+      "sklearn_preprocessing"
+    ],
+    "4": [
+      "src_backend_db_connect",
+      "src_backend_db_py_connection",
+      "src_backend_db_py_path",
+      "src_backend_migrations_apply",
+      "src_backend_migrations_backup",
+      "src_backend_migrations_migrate",
+      "src_backend_migrations_py_path",
+      "tests_test_external_context_externalcontexttests_test_api_failure_is_missing_and_recorded",
+      "tests_test_external_context_externalcontexttests_test_api_failure_is_missing_and_recorded_fail",
+      "tests_test_graph_graphtests",
+      "tests_test_graph_graphtests_test_high_route_alerts_when_recommendation_is_invalid",
+      "tests_test_graph_graphtests_test_high_route_alerts_when_recommendation_is_invalid_invalid_client",
+      "tests_test_graph_graphtests_test_medium_route_skips_worklist",
+      "tests_test_migrations_migrationtests",
+      "tests_test_migrations_migrationtests_test_checks_copy_and_backs_up_before_migrating",
+      "tests_test_predictor_modelstub",
+      "tests_test_predictor_modelstub_init",
+      "tests_test_predictor_modelstub_predict_proba",
+      "tests_test_scheduler_runner_schedulerrunnertests",
+      "tests_test_scheduler_runner_schedulerrunnertests_test_due_transitions_without_waiting",
+      "tests_test_scoring_scoringtests",
+      "tests_test_scoring_scoringtests_test_cancellation_records_ineligible_run_without_score",
+      "tests_test_scoring_scoringtests_test_immutable_snapshot_and_retry",
+      "tests_test_shift_list_shiftlisttests",
+      "tests_test_shift_list_shiftlisttests_test_candidate_ranks_stay_frozen_after_new_scores",
+      "tests_test_worklist_worklisttests",
+      "tests_test_worklist_worklisttests_test_alert_failure_rolls_back_new_episode_and_queue",
+      "tests_test_worklist_worklisttests_test_concurrent_cancellation_blocks_alert",
+      "tests_test_worklist_worklisttests_test_high_alert_survives_unavailable_qwen_and_is_deduplicated"
+    ],
+    "5": [
+      "contextlib",
+      "datetime",
+      "io",
+      "pathlib",
+      "sqlite3",
+      "src_backend_db",
+      "src_backend_db_rationale_1",
+      "src_backend_migrations",
+      "src_backend_migrations_rationale_1",
+      "sys",
+      "tempfile",
+      "tests_test_cli",
+      "tests_test_eligibility",
+      "tests_test_external_context",
+      "tests_test_features",
+      "tests_test_features_rationale_1",
+      "tests_test_graph",
+      "tests_test_migrations",
+      "tests_test_predictor",
+      "tests_test_recommendations",
+      "tests_test_replacements",
+      "tests_test_scheduler",
+      "tests_test_scheduler_runner",
+      "tests_test_scoring",
+      "tests_test_shift_list",
+      "tests_test_worklist",
+      "unittest"
+    ],
+    "6": [
+      "src_backend_agent_graph_build_graph",
+      "src_backend_agent_graph_build_graph_build_feature_row",
+      "src_backend_agent_graph_build_graph_current_evidence",
+      "src_backend_agent_graph_build_graph_eligibility",
+      "src_backend_agent_graph_build_graph_external_context",
+      "src_backend_agent_graph_build_graph_low_medium",
+      "src_backend_agent_graph_build_graph_persist_alert",
+      "src_backend_agent_graph_build_graph_read_evidence",
+      "src_backend_agent_graph_build_graph_recommend",
+      "src_backend_agent_graph_build_graph_schedule",
+      "src_backend_agent_graph_build_graph_score",
+      "src_backend_agent_graph_build_graph_select_playbooks",
+      "src_backend_agent_graph_parse",
+      "src_backend_agent_graph_py_datetime",
+      "src_backend_agent_graph_py_path",
+      "src_backend_agent_graph_run_agent",
+      "src_backend_agent_playbooks",
+      "src_backend_agent_playbooks_applicable_actions",
+      "src_backend_agent_playbooks_rationale_1",
+      "src_backend_agent_recommendations",
+      "src_backend_agent_recommendations_rationale_1",
+      "src_backend_agent_recommendations_rationale_62",
+      "src_backend_agent_recommendations_request_qwen",
+      "src_backend_agent_recommendations_validate_recommendation",
+      "tests_test_recommendations_recommendationtests",
+      "tests_test_recommendations_recommendationtests_test_accepts_only_allowed_actions_and_real_evidence",
+      "urllib_request"
+    ],
+    "7": [
+      "src_backend_features_build_features",
+      "src_backend_features_featurerow",
+      "src_backend_features_py_connection",
+      "src_backend_features_rationale_52",
+      "tests_test_eligibility_eligibilitytests",
+      "tests_test_eligibility_eligibilitytests_test_approved_replacement_stops_scoring_but_claim_alone_does_not",
+      "tests_test_eligibility_eligibilitytests_test_cancellation_stops_scoring",
+      "tests_test_eligibility_eligibilitytests_test_complete_original_order_stops_scoring",
+      "tests_test_eligibility_eligibilitytests_test_open_order_is_eligible",
+      "tests_test_features_featuretests",
+      "tests_test_features_featuretests_test_cached_travel_and_holiday_are_visible_only_after_fetch",
+      "tests_test_features_featuretests_test_completed_installment_does_not_drive_transport_state",
+      "tests_test_features_featuretests_test_future_occurrence_recorded_early_is_invisible",
+      "tests_test_features_featuretests_test_late_recorded_eta_and_promise_are_invisible",
+      "tests_test_features_featuretests_test_lines_are_not_multiplied_by_shipments",
+      "tests_test_features_featuretests_test_rejects_naive_decision_time",
+      "tests_test_features_featuretests_test_unknown_external_semantics_remain_missing",
+      "tests_test_features_fixture",
+      "tests_test_features_py_connection"
+    ],
+    "8": [
+      "any",
+      "functools",
+      "hashlib",
+      "src_backend_predictor",
+      "src_backend_predictor_load_model",
+      "src_backend_predictor_model_identity",
+      "src_backend_predictor_predict_probability",
+      "src_backend_predictor_py_path",
+      "src_backend_predictor_rationale_1",
+      "src_backend_predictor_rationale_23",
+      "src_backend_predictor_rationale_39",
+      "src_backend_predictor_risk_band",
+      "tests_test_predictor_predictortests",
+      "tests_test_predictor_predictortests_test_band_boundaries",
+      "tests_test_predictor_predictortests_test_positive_class_and_feature_order",
+      "tests_test_predictor_predictortests_test_rejects_bad_contract_or_probability",
+      "tests_test_predictor_predictortests_test_saved_pipeline_on_known_synthetic_row"
+    ],
+    "9": [
+      "src_backend_scheduler",
+      "src_backend_scheduler_next_due_time",
+      "src_backend_scheduler_py_datetime",
+      "src_backend_scheduler_py_path",
+      "src_backend_scheduler_rationale_1",
+      "src_backend_scheduler_rationale_36",
+      "src_backend_scheduler_rationale_99",
+      "src_backend_scheduler_scheduler_loop",
+      "src_backend_scheduler_scheduler_once",
+      "tests_test_scheduler_schedulertests",
+      "tests_test_scheduler_schedulertests_test_demo_intervals_and_boundary_crossing",
+      "time"
+    ],
+    "10": [
+      "csv",
+      "ml_generate_training_data",
+      "ml_generate_training_data_generate_dataset",
+      "ml_generate_training_data_rationale_1",
+      "ml_generate_training_data_rationale_28",
+      "ml_generate_training_data_utc_text",
+      "ml_generate_training_data_write_csv",
+      "random",
+      "zoneinfo"
+    ],
+    "11": [
+      "src_backend_agent_init",
+      "src_backend_agent_init_rationale_1"
+    ],
+    "12": [
+      "src_backend_external_init",
+      "src_backend_external_init_rationale_1"
+    ],
+    "13": [
+      "pkg_backend"
+    ]
+  },
+  "cohesion": {
+    "0": 0.10372340425531915,
+    "1": 0.10160427807486631,
+    "2": 0.1471264367816092,
+    "3": 0.13793103448275862,
+    "4": 0.14532019704433496,
+    "5": 0.3418803418803419,
+    "6": 0.1111111111111111,
+    "7": 0.19298245614035087,
+    "8": 0.17647058823529413,
+    "9": 0.24242424242424243,
+    "10": 0.3333333333333333,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_backend_db_connect",
+      "label": "connect()",
+      "degree": 38
+    },
+    {
+      "id": "tests_test_features_fixture",
+      "label": "fixture()",
+      "degree": 35
+    },
+    {
+      "id": "src_backend_agent_graph_build_graph",
+      "label": "build_graph()",
+      "degree": 29
+    },
+    {
+      "id": "src_backend_features_utc_text",
+      "label": "_utc_text()",
+      "degree": 27
+    },
+    {
+      "id": "src_backend_scoring_score_order",
+      "label": "score_order()",
+      "degree": 26
+    },
+    {
+      "id": "tests_test_predictor_modelstub",
+      "label": "ModelStub",
+      "degree": 24
+    },
+    {
+      "id": "src_backend_cli_main",
+      "label": "main()",
+      "degree": 24
+    },
+    {
+      "id": "src_backend_features_build_features",
+      "label": "build_features()",
+      "degree": 22
+    },
+    {
+      "id": "src_backend_migrations_migrate",
+      "label": "migrate()",
+      "degree": 22
+    },
+    {
+      "id": "src_backend_eligibility_check_eligibility",
+      "label": "check_eligibility()",
+      "degree": 20
+    }
+  ],
+  "surprises": [
+    {
+      "source": "build_graph()",
+      "target": "AgentState",
+      "source_files": [
+        "src/backend/agent/graph.py",
+        "src/backend/agent/state.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "run_agent()",
+      "target": "AgentState",
+      "source_files": [
+        "src/backend/agent/graph.py",
+        "src/backend/agent/state.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "read_evidence()",
+      "target": "connect()",
+      "source_files": [
+        "src/backend/agent/graph.py",
+        "src/backend/db.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities; peripheral node `read_evidence()` unexpectedly reaches hub `connect()`"
+    },
+    {
+      "source": "build_graph()",
+      "target": "ScoreResult",
+      "source_files": [
+        "src/backend/agent/graph.py",
+        "src/backend/scoring.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "persist_alert()",
+      "target": "ScoreResult",
+      "source_files": [
+        "src/backend/agent/graph.py",
+        "src/backend/scoring.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `connect()` connect `Community 4` to `Community 0`, `Community 1`, `Community 2`, `Community 5`, `Community 6`, `Community 9`?",
+      "why": "High betweenness centrality (0.085) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 13 inferred relationships involving `build_graph()` (e.g. with `build_feature_row()` and `current_evidence()`) actually correct?",
+      "why": "`build_graph()` has 13 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `backend` to the rest of the system?",
+      "why": "1 weakly-connected nodes found - possible missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10372340425531915 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `score_order()` connect `Community 0` to `Community 1`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 9`?",
+      "why": "High betweenness centrality (0.064) - this node is a cross-community bridge."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10160427807486631 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `fixture()` connect `Community 7` to `Community 1`, `Community 2`, `Community 4`, `Community 5`?",
+      "why": "High betweenness centrality (0.061) - this node is a cross-community bridge."
+    }
+  ]
+}
