@@ -8,7 +8,13 @@ from typing import Callable
 
 from langgraph.graph import END, START, StateGraph
 
-from ..db import connect
+if __package__ in (None, ""):
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    __package__ = "backend.agent"
+
+from ..db import DEFAULT_DB, connect
 from ..eligibility import check_eligibility
 from ..features import _utc_text, build_features
 from ..external.context import get_context, live_enrich
@@ -154,12 +160,14 @@ def build_graph(db_path: Path, *, model=None, model_version: str | None = None,
         graph.add_node(name, node)
     graph.add_edge(START, "check_eligibility")
     graph.add_conditional_edges("check_eligibility",
-                                lambda state: "read_evidence" if state["eligibility_reason"] == "eligible" else "score_and_save")
+                                lambda state: "eligible" if state["eligibility_reason"] == "eligible" else "ineligible",
+                                {"eligible": "read_evidence", "ineligible": "score_and_save"})
     graph.add_edge("read_evidence", "external_context")
     graph.add_edge("external_context", "build_features")
     graph.add_edge("build_features", "score_and_save")
     graph.add_conditional_edges("score_and_save",
-                                lambda state: "high_worklist" if state.get("risk_band") == "High" else "monitor")
+                                lambda state: "high" if state.get("risk_band") == "High" else "not_high",
+                                {"high": "high_worklist", "not_high": "monitor"})
     graph.add_edge("monitor", "schedule")
     graph.add_edge("high_worklist", "current_evidence")
     graph.add_edge("current_evidence", "select_playbooks")
@@ -168,6 +176,14 @@ def build_graph(db_path: Path, *, model=None, model_version: str | None = None,
     graph.add_edge("persist_alert", "schedule")
     graph.add_edge("schedule", END)
     return graph.compile()
+
+
+def export_mermaid(output_path: Path) -> Path:
+    """Write the compiled agent graph as Mermaid text without running it."""
+    output_path = Path(output_path)
+    mermaid = build_graph(DEFAULT_DB).get_graph().draw_mermaid()
+    output_path.write_text(mermaid.rstrip() + "\n", encoding="utf-8")
+    return output_path
 
 
 def run_agent(db_path: Path, order_id: int, decision_time: datetime, *,
@@ -181,3 +197,12 @@ def run_agent(db_path: Path, order_id: int, decision_time: datetime, *,
     if trigger_id:
         state["trigger_id"] = trigger_id
     return graph.invoke(state)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Export the agent graph as Mermaid text")
+    parser.add_argument("--output", type=Path, required=True, help="destination .mmd file")
+    args = parser.parse_args()
+    print(export_mermaid(args.output))

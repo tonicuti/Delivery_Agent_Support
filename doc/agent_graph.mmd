@@ -1,0 +1,38 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	check_eligibility(check_eligibility)
+	read_evidence(read_evidence)
+	external_context(external_context)
+	build_features(build_features)
+	score_and_save(score_and_save)
+	monitor(monitor)
+	high_worklist(high_worklist)
+	current_evidence(current_evidence)
+	select_playbooks(select_playbooks)
+	recommend(recommend)
+	persist_alert(persist_alert)
+	schedule(schedule)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> check_eligibility;
+	build_features --> score_and_save;
+	check_eligibility -. &nbsp;eligible&nbsp; .-> read_evidence;
+	check_eligibility -. &nbsp;ineligible&nbsp; .-> score_and_save;
+	current_evidence --> select_playbooks;
+	external_context --> build_features;
+	high_worklist --> current_evidence;
+	monitor --> schedule;
+	persist_alert --> schedule;
+	read_evidence --> external_context;
+	recommend --> persist_alert;
+	score_and_save -. &nbsp;high&nbsp; .-> high_worklist;
+	score_and_save -. &nbsp;not_high&nbsp; .-> monitor;
+	select_playbooks --> recommend;
+	schedule --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
