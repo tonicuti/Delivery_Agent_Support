@@ -1,2 +1,5 @@
-def main() -> None:
-    print("Hello from backend!")
+"""Local delivery-risk backend."""
+
+from .cli import main
+
+__all__ = ["main"]
