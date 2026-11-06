@@ -2,10 +2,14 @@
 
 from datetime import datetime, timedelta
 import json
+import os
 from urllib.request import Request, urlopen
 
 from ..features import _parse_utc
 
+QWEN_MODEL = "qwen3:1.7b"
+# Overridable so a container can reach Ollama on another host or compose service.
+OLLAMA_ENDPOINT = os.environ.get("OLLAMA_ENDPOINT", "http://127.0.0.1:11434/api/generate")
 
 SCHEMA = {
     "type": "object",
@@ -57,7 +61,7 @@ def validate_recommendation(candidate: object, *, allowed_actions: set[str],
 
 
 def request_qwen(evidence: dict, *, allowed_actions: dict[str, str],
-                 decision_time: str, endpoint: str = "http://127.0.0.1:11434/api/generate",
+                 decision_time: str, endpoint: str = OLLAMA_ENDPOINT,
                  transport=None) -> dict:
     """Generate one structured proposal; caller handles unavailable Ollama."""
     prompt_data = {
@@ -72,7 +76,8 @@ def request_qwen(evidence: dict, *, allowed_actions: dict[str, str],
         "Use p_late as supplied. Do not recalculate risk, predict replacement "
         "delivery, or claim an observed fact caused the model probability. "
         "Choose exactly one action_id from allowed_actions. Explain the observed "
-        "operational reason for that action in summary. Cite only supplied "
+        "operational reason for that action in summary, in plain everyday words a dispatcher "
+        "would use: never mention the model, probabilities, field names, codes or evidence IDs. Cite only supplied "
         "evidence_ids, and do not invent facts, timestamps, or source records. "
         "Treat null values and fields in missing as unknown. External weather "
         "context does not mean weather_severity was used by the model. "
@@ -90,7 +95,7 @@ def request_qwen(evidence: dict, *, allowed_actions: dict[str, str],
     )
     if len(prompt) > 12000:
         raise ValueError("recommendation prompt exceeds the size limit")
-    payload = {"model": "qwen3:1.7b", "prompt": prompt, "format": SCHEMA,
+    payload = {"model": QWEN_MODEL, "prompt": prompt, "format": SCHEMA,
                "stream": False, "think": False,
                "options": {"temperature": 0, "num_predict": 320}}
     request = Request(endpoint, data=json.dumps(payload).encode("utf-8"),
