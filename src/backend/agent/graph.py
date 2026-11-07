@@ -101,6 +101,8 @@ def build_graph(db_path: Path, *, model=None, model_version: str | None = None,
             actions = {"review_conflicting_evidence": PLAYBOOKS["review_conflicting_evidence"]}
         else:
             actions = applicable_actions(state["feature_values"])
+            if not state["missing"] and len(actions) > 1:
+                actions.pop("review_conflicting_evidence", None)
         return {"allowed_actions": actions}
 
     def recommend(state: AgentState) -> dict:
@@ -110,8 +112,10 @@ def build_graph(db_path: Path, *, model=None, model_version: str | None = None,
             "order_id": state["order_id"], "p_late": state["p_late"],
             "promise_version": state["promise_version"],
             "promised_to_utc": state["promised_to_utc"],
-            "features": state["feature_values"], "missing": state["missing"],
-            "evidence_ids": evidence_ids, "evidence_differences": state.get("evidence_differences", []),
+            "features": state["feature_values"], "feature_sources": state["feature_sources"],
+            "missing": state["missing"],
+            "evidence_ids": evidence_ids, 
+            "evidence_differences": state.get("evidence_differences", []),
             "owner_team": state["owner_team"],
             "external_status": state.get("external_status", {}),
         }
@@ -126,7 +130,8 @@ def build_graph(db_path: Path, *, model=None, model_version: str | None = None,
             validated = validate_recommendation(candidate,
                                                 allowed_actions=set(state["allowed_actions"]),
                                                 evidence_ids=set(evidence_ids),
-                                                decision_time=state["decision_time"])
+                                                decision_time=state["decision_time"],
+                                                feature_values=state["feature_values"])
             if validated["suggested_owner"] != state["owner_team"]:
                 raise ValueError("Qwen suggested an owner outside the assigned team")
             return {"recommendation": validated, "recommendation_error": None}

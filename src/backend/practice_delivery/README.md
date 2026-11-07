@@ -85,3 +85,26 @@ To rebuild a clean database under a new name:
 ```powershell
 py 'C:\Users\daong\OneDrive\Documents\ChatGPT\IT Consultant\practice_delivery\build_practice_db.py' --output 'C:\Users\daong\OneDrive\Documents\ChatGPT\IT Consultant\practice_delivery\another_practice.db'
 ```
+
+## Live API and agent practice
+
+`--live-agent-mock` adds order 2001 to a new database. Its promise is about six
+hours after database creation, with a departed shipment, a 30-minute departure
+delay, a 180-minute ETA delay, short stock, and a two-hour travel observation.
+Weather and holiday observations are fetched from Open-Meteo and Nager.Date when
+you run the agent. Build a new database each time you want a clean run; the
+builder refuses to overwrite an existing file. Run it soon after creation so
+the mock promise is still in the future. Ollama with `qwen3:1.7b` must be running
+for an LLM recommendation; scoring and alerting still work if it is unavailable.
+
+```powershell
+py .\src\backend\practice_delivery\build_practice_db.py --live-agent-mock --output .\src\backend\practice_delivery\my_live_demo.db
+$decisionAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+& '.\.venv\Scripts\backend.exe' --db .\src\backend\practice_delivery\my_live_demo.db run-agent --order-id 2001 --as-of $decisionAt --live --json
+```
+
+Check `external_status`, `feature_values`, `missing`, `score`, and
+`recommendation` in the JSON output. The live forecast is classified by
+`demo-weather-v1`; this mapping is for workflow practice and has not been
+validated against the saved model's synthetic weather labels. A failed or
+stale API response leaves the corresponding feature unknown.

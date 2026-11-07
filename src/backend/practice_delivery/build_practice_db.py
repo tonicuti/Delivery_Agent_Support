@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 
 DEFAULT_BACKEND = Path(r"C:\Itoni\IT Consultant Netcompany\backend")
 EXTRA = Path(__file__).with_name("practice_extra.sql")
+LIVE_MOCK = Path(__file__).with_name("live_agent_mock.sql")
 SCRIPTS = ("schema_fresh.sql", "inference_seed.sql", "practice_extra.sql",
            "migrations/0001_agent.sql")
 
@@ -18,6 +19,8 @@ def main() -> None:
     parser.add_argument("--backend", type=Path, default=DEFAULT_BACKEND)
     parser.add_argument("--output", type=Path,
                         default=Path(__file__).with_name("practice_delivery.db"))
+    parser.add_argument("--live-agent-mock", action="store_true",
+                        help="add order 2001 with current-time evidence for live API inference")
     args = parser.parse_args()
     backend = args.backend.resolve()
     output = args.output.resolve()
@@ -27,6 +30,8 @@ def main() -> None:
         parser.error(f"output directory does not exist: {output.parent}")
     paths = (backend / SCRIPTS[0], backend / SCRIPTS[1], EXTRA,
              backend / SCRIPTS[3])
+    if args.live_agent_mock:
+        paths += (LIVE_MOCK,)
     for path in paths:
         if not path.is_file():
             parser.error(f"required SQL file does not exist: {path}")
@@ -42,7 +47,8 @@ def main() -> None:
             integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
             foreign_keys = db.execute("PRAGMA foreign_key_check").fetchall()
             orders = db.execute("SELECT COUNT(*) FROM customer_order").fetchone()[0]
-            if integrity != "ok" or foreign_keys or orders != 10:
+            expected_orders = 11 if args.live_agent_mock else 10
+            if integrity != "ok" or foreign_keys or orders != expected_orders:
                 raise RuntimeError(
                     f"invalid practice database: integrity={integrity}, "
                     f"foreign_key_errors={len(foreign_keys)}, orders={orders}"
