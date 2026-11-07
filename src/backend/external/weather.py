@@ -9,7 +9,7 @@ WEATHER_MAPPING_VERSION = "demo-weather-v1"
 
 
 def classify_weather(precipitation_mm: float, wind_gust_m_s: float) -> int:
-    """Demo operational severity for the delivery hour; not a trained model input."""
+    """Demo severity for the delivery hour, uncalibrated to model training labels."""
     if (not all(isinstance(value, (int, float)) and math.isfinite(value) and value >= 0
                 for value in (precipitation_mm, wind_gust_m_s))):
         raise ValueError("weather measurements must be finite and nonnegative")
@@ -26,7 +26,7 @@ def weather_url(latitude: float, longitude: float, target: datetime) -> str:
     day = target.astimezone(timezone.utc).date().isoformat()
     params = {
         "latitude": latitude, "longitude": longitude,
-        "hourly": "precipitation,wind_gusts_10m,weather_code",
+        "hourly": "temperature_2m,precipitation,wind_gusts_10m,weather_code",
         "timezone": "UTC", "wind_speed_unit": "ms",
         "start_date": day, "end_date": day,
     }
