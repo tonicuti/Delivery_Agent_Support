@@ -11,7 +11,7 @@ import sqlite3
 from tempfile import TemporaryDirectory
 
 from .agent.mock_recommendation import mock_recommendation
-from .db import DEFAULT_DB, connect
+from .db import DEFAULT_DB, SCHEMA_SQL, SEED_SQL, connect
 from .features import FEATURE_NAMES, build_features
 from .migrations import LATEST_VERSION, migrate
 from .scoring import score_order
@@ -146,14 +146,13 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "replay":
             from .agent.graph import run_agent
 
-            root = Path(__file__).resolve().parents[2]
             mock_client = mock_recommendation if args.mock_recommendation else None
             with TemporaryDirectory() as folder:
                 path = Path(folder) / "replay.db"
                 with closing(sqlite3.connect(path)) as db:
                     db.execute("PRAGMA foreign_keys = ON")
-                    db.executescript((root / "schema_fresh.sql").read_text(encoding="utf-8"))
-                    db.executescript((root / "inference_seed.sql").read_text(encoding="utf-8"))
+                    db.executescript(SCHEMA_SQL.read_text(encoding="utf-8"))
+                    db.executescript(SEED_SQL.read_text(encoding="utf-8"))
                 migrate(path, backup_path=Path(folder) / "replay.backup.db")
                 earlier = run_agent(path, 1002, _as_of("2026-11-06T11:40:00Z"),
                                     trigger_id="replay:eta-delay:before", offline=True,

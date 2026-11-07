@@ -23,7 +23,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # rooted at /app (uv sync does this by default) and not be copied to site-packages.
 COPY src ./src
 COPY migrations ./migrations
-COPY schema_fresh.sql inference_seed.sql ./
 COPY docker ./docker
 COPY ML/data/trained_models ./ML/data/trained_models
 # Only for tests/test_predictor.py (5 MB); the app itself does not read it.

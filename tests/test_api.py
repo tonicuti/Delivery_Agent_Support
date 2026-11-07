@@ -13,10 +13,9 @@ from urllib.request import Request, urlopen
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from backend.api import ApiContext, make_server
-from backend.db import connect
+from backend.db import SCHEMA_SQL, SEED_SQL, connect
 from backend.migrations import migrate
 
-ROOT = Path(__file__).resolve().parents[1]
 NOW = datetime(2026, 11, 6, 12, 5, tzinfo=timezone.utc)
 AS_OF = "2026-11-06T12:00:00Z"
 
@@ -24,8 +23,8 @@ AS_OF = "2026-11-06T12:00:00Z"
 def seeded_database(folder: str) -> Path:
     path = Path(folder) / "api.db"
     with closing(sqlite3.connect(path)) as db:
-        db.executescript((ROOT / "schema_fresh.sql").read_text(encoding="utf-8"))
-        db.executescript((ROOT / "inference_seed.sql").read_text(encoding="utf-8"))
+        db.executescript(SCHEMA_SQL.read_text(encoding="utf-8"))
+        db.executescript(SEED_SQL.read_text(encoding="utf-8"))
     migrate(path, backup_path=Path(folder) / "api.backup.db")
     return path
 

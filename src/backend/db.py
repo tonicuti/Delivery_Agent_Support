@@ -18,3 +18,9 @@ def connect(path: Path = DEFAULT_DB, *, readonly: bool = False) -> sqlite3.Conne
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
+
+
+# Base schema and the three synthetic demo orders (1001-1003) used by replay, the demo container and tests.
+SQL_DIR = Path(__file__).resolve().parent / "practice_delivery"
+SCHEMA_SQL = SQL_DIR / "schema_fresh.sql"
+SEED_SQL = SQL_DIR / "inference_seed.sql"

@@ -16,7 +16,7 @@ uv run backend --db path\to\pilot.db scheduler --once --offline
 uv run python -m unittest discover -s tests -v
 ```
 
-`delivery_db.db` currently has no business rows. `replay` creates a temporary database from `schema_fresh.sql` and `inference_seed.sql`; it does not change `delivery_db.db`. `migrate` validates a copy and creates a backup before applying the additive agent migration. Use `--json` for machine-readable command output. `--live` fetches Open-Meteo and Nager.Date context and calls Ollama only for high-risk recommendations; the decision timestamp advances to evidence receipt before scoring.
+`delivery_db.db` currently has no business rows. `replay` creates a temporary database from `src/backend/practice_delivery/schema_fresh.sql` and `inference_seed.sql`; it does not change `delivery_db.db`. `migrate` validates a copy and creates a backup before applying the additive agent migration. Use `--json` for machine-readable command output. `--live` fetches Open-Meteo and Nager.Date context and calls Ollama only for high-risk recommendations; the decision timestamp advances to evidence receipt before scoring.
 
 Add `--mock-recommendation` to `replay` to use a deterministic, schema-validated mock action without Ollama. The ETA-delay simulation recommends `check_stock` at the first High score, then `confirm_route` after the 120-minute ETA delay appears. It records an initial simulated alert and a follow-up because the recommended action changed. The output includes each recommendation, owner, response deadline, cited evidence, and alert ID.
 

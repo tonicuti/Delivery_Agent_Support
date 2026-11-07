@@ -8,7 +8,7 @@ A terminal-based **delivery risk agent**. It reads order evidence from SQLite, e
 
 - Full requirements / design contract: [src/backend/README.md](src/backend/README.md) — read it before non-trivial changes.
 - Run instructions & evidence policy: [README.md](README.md).
-- Database semantics: [DATABASE_KNOWLEDGE.md](DATABASE_KNOWLEDGE.md) (may describe an older schema — the real schema is `schema_fresh.sql` + `migrations/`).
+- Database semantics: [DATABASE_KNOWLEDGE.md](DATABASE_KNOWLEDGE.md) (may describe an older schema — the real schema is `src/backend/practice_delivery/schema_fresh.sql` + `migrations/`).
 - Training data is **synthetic**. Never present model metrics as validated real-world performance.
 
 ## Commands
@@ -72,8 +72,8 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 │   └── data/trained_models/  # lightgbm.joblib etc. — DO NOT overwrite casually
 ├── migrations/               # versioned additive SQL migrations (0001_agent.sql, ...)
 ├── tests/                    # unittest, one file per module (test_<module>.py)
-├── schema_fresh.sql          # base schema used by replay / tests
-├── inference_seed.sql        # seed rows for the replay scenario
+├── src/backend/practice_delivery/schema_fresh.sql   # base schema used by replay / tests / demo container (path set in db.py)
+├── src/backend/practice_delivery/inference_seed.sql # seed rows for the replay scenario and tests (orders 1001-1003)
 ├── graphify-out/             # generated knowledge graph of the codebase (see below)
 └── .claude/skills/           # project skills (ui-ux-pro-max)
 ```

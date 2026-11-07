@@ -6,19 +6,19 @@ from contextlib import closing
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from backend.db import SCHEMA_SQL, SEED_SQL
 from backend.migrations import migrate
 
 
 class MigrationTests(unittest.TestCase):
     def test_checks_copy_and_backs_up_before_migrating(self):
-        root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "pilot.db"
             backup = Path(folder) / "pilot.backup.db"
             with closing(sqlite3.connect(path)) as db:
                 db.execute("PRAGMA foreign_keys = ON")
-                db.executescript((root / "schema_fresh.sql").read_text(encoding="utf-8"))
-                db.executescript((root / "inference_seed.sql").read_text(encoding="utf-8"))
+                db.executescript(SCHEMA_SQL.read_text(encoding="utf-8"))
+                db.executescript(SEED_SQL.read_text(encoding="utf-8"))
             result = migrate(path, backup_path=backup)
             self.assertEqual(result, 2)
             self.assertTrue(backup.exists())
@@ -37,8 +37,8 @@ class MigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "pilot.db"
             with closing(sqlite3.connect(path)) as db:
-                db.executescript((root / "schema_fresh.sql").read_text(encoding="utf-8"))
-                db.executescript((root / "inference_seed.sql").read_text(encoding="utf-8"))
+                db.executescript(SCHEMA_SQL.read_text(encoding="utf-8"))
+                db.executescript(SEED_SQL.read_text(encoding="utf-8"))
                 db.executescript((root / "migrations" / "0001_agent.sql").read_text(encoding="utf-8"))
                 db.execute("PRAGMA user_version = 1")
                 db.commit()
