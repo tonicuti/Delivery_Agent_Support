@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 from .agent.mock_recommendation import mock_recommendation
 from .db import DEFAULT_DB, connect
 from .features import FEATURE_NAMES, build_features
-from .migrations import migrate
+from .migrations import LATEST_VERSION, migrate
 from .scoring import score_order
 
 
@@ -132,14 +132,14 @@ def main(argv: list[str] | None = None) -> int:
             result = {"database": str(args.db.resolve()), "schema_version": migrate(args.db)}
         elif args.command == "score":
             with closing(connect(args.db)) as db:
-                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
                     raise ValueError("run 'backend migrate' on this database before scoring")
                 result = asdict(score_order(db, args.order_id, args.as_of, trigger_id=args.trigger_id))
         elif args.command == "run-agent":
             from .agent.graph import run_agent
 
             with closing(connect(args.db, readonly=True)) as db:
-                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
                     raise ValueError("run 'backend migrate' on this database before running the agent")
             result = run_agent(args.db, args.order_id, args.as_of,
                                trigger_id=args.trigger_id, offline=args.offline)
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
             from .scheduler import scheduler_loop, scheduler_once
 
             with closing(connect(args.db, readonly=True)) as db:
-                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
                     raise ValueError("run 'backend migrate' on this database before scheduler")
             if args.once:
                 result = {"runs": scheduler_once(args.db, now=args.as_of, offline=args.offline)}
@@ -177,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
             from .api import serve
 
             with closing(connect(args.db, readonly=True)) as db:
-                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
                     raise ValueError("run 'backend migrate' on this database before serve")
             serve(args.db, host=args.host, port=args.port, scheduler_mode=args.scheduler_mode)
             return 0
@@ -203,12 +203,12 @@ def main(argv: list[str] | None = None) -> int:
                 done = refresh_replacement_tasks(db, args.order_id, args.as_of)
             result = {"order_id": args.order_id, "tasks_completed": done}
         elif args.command == "ack-alert":
-            from .notifications import acknowledge_alert
+            from .alerts.notifications import acknowledge_alert
             with closing(connect(args.db)) as db:
                 acknowledged = acknowledge_alert(db, args.notification_id, args.at)
             result = {"notification_id": args.notification_id, "acknowledged_at_utc": acknowledged}
         elif args.command == "feedback":
-            from .notifications import record_feedback
+            from .alerts.notifications import record_feedback
             with closing(connect(args.db)) as db:
                 feedback_id = record_feedback(db, args.feedback_id, args.recommendation_id,
                                               args.chosen_action_id, args.recorded_by,

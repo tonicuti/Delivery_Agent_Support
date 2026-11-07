@@ -34,7 +34,7 @@ export default function Markdownish({ text }) {
     }
   }
   return (
-    <div className="grid gap-2">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
       {blocks.map((b, i) => b.kind === "p"
         ? <p key={i}>{inline(b.text)}</p>
         : b.kind === "ul"

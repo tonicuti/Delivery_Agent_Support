@@ -31,7 +31,7 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 ├── src/backend/              # Python package (entry point: backend = "backend:main")
 │   ├── cli.py                # argparse subcommands; thin layer that calls domain modules
 │   ├── db.py                 # connect() — SQLite connection (FK enforcement, readonly mode)
-│   ├── migrations.py         # validate-on-copy, back up, apply migrations/*.sql
+│   ├── migrations.py         # validate-on-copy, back up, apply numbered migrations/*.sql in order
 │   ├── eligibility.py        # is an order still eligible for predictive scoring?
 │   ├── features.py           # builds the 17 model inputs + provenance, as-of decision time
 │   ├── predictor.py          # loads LightGBM pipeline once, validates probabilities
@@ -41,10 +41,19 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 │   ├── decisions.py          # approve / edit / dismiss decision log (role stored, never a name)
 │   ├── reasons.py            # observed signals from rules, in plain words (not model attribution)
 │   ├── labels.py             # plain-language wording shared by API and assistant
-│   ├── chat.py               # assistant: read facts first, local model phrases them; falls back to the facts
+│   ├── ollama.py             # shared local-model settings (model name, endpoint) and HTTP transport
+│   ├── chatbot/              # dispatcher assistant: read facts first, local model phrases them, falls back to the facts
+│   │   ├── tools.py          #   allow-listed read-only tools the model may call (validated args)
+│   │   ├── graph.py          #   LangGraph loop: think -> act -> think; guard + fallback keep a small model honest
+│   │   ├── history.py        #   shared chat history: saved per finished turn, searched by a tool
+│   │   ├── planner.py        #   deterministic lookup picker, used only by guard and fallback
+│   │   ├── facts.py          #   query results -> plain sentences
+│   │   ├── prompts.py        #   limits and the system prompt (tells the model when to call which tool)
+│   │   ├── conversation.py   #   chat_events()/run_chat(): one streamed chat turn
+│   │   └── drafts.py         #   customer message drafts
 │   ├── scheduler.py          # due-time bands, event triggers, no-overlap runs (no LLM)
 │   ├── worklist.py           # shift lists (frozen top-K rankings)
-│   ├── notifications.py      # simulated alerts / acknowledgments
+│   ├── alerts/               # high-risk alerts for staff: dispatch.py (when/how to raise), notifications.py (acknowledge, feedback)
 │   ├── replacements.py       # replacement authorization + urgent tasks
 │   ├── external/             # provider adapters + cached evidence
 │   │   ├── weather.py        #   Open-Meteo → severity mapping demo-weather-v1

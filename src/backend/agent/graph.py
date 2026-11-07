@@ -22,7 +22,8 @@ from ..scoring import ScoreResult, score_order
 from .playbooks import PLAYBOOKS, applicable_actions
 from .recommendations import request_qwen, validate_recommendation
 from .state import AgentState
-from .worklist import close_monitoring, preview_high_risk, persist_recommendation_and_alert
+from .persistence import persist_recommendation_and_alert
+from .worklist import close_monitoring, preview_high_risk
 
 
 def _parse(value: str) -> datetime:

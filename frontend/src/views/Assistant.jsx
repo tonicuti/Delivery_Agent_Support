@@ -20,12 +20,12 @@ const titleFrom = (text) => (text.length > 42 ? `${text.slice(0, 40).trim()}…`
 
 function ChatList({ chats, activeId, onSelect, onNew, onDelete }) {
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <Button onClick={onNew}><MessageSquarePlus aria-hidden="true" />New chat</Button>
       {chats.length === 0 ? <p className="px-1 text-sm text-muted-foreground">Your conversations will be kept here, on this device.</p> : (
-        <ul className="grid gap-1" aria-label="Your chats">
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-1" aria-label="Your chats">
           {chats.map((c) => (
-            <li key={c.id} className={cn("group flex items-center gap-1 rounded-xl", c.id === activeId && "bg-accent")}>
+            <li key={c.id} className={cn("group flex min-w-0 items-center gap-1 rounded-xl", c.id === activeId && "bg-accent")}>
               <button type="button" onClick={() => onSelect(c.id)} aria-current={c.id === activeId ? "true" : undefined}
                       className="min-w-0 flex-1 rounded-xl px-3 py-2 text-left hover:bg-accent/60">
                 <span className="block truncate text-sm font-semibold">{c.title}</span>
@@ -59,7 +59,7 @@ function Bubble({ m }) {
   return (
     <div className={cn("flex gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-accent-foreground"><Bot className="size-4" aria-hidden="true" /></span>}
-      <div className={cn("max-w-[85%] rounded-2xl px-4 py-2.5 text-sm", mine ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm border bg-muted/60")}>
+      <div className={cn("min-w-0 max-w-[85%] break-words rounded-2xl px-4 py-2.5 text-sm", mine ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm border bg-muted/60")}>
         {mine ? <p className="whitespace-pre-wrap break-words">{m.content}</p> : <Markdownish text={m.content} />}
         {!mine && m.meta?.steps?.length > 0 && (
           <ul className="mt-2 grid gap-0.5 border-t pt-2 text-xs text-muted-foreground">
@@ -146,7 +146,7 @@ export default function Assistant() {
     try {
       const response = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
-        body: JSON.stringify({ messages: history.map(({ role, content: c }) => ({ role, content: c })), ...(chat?.order ? { order_id: chat.order } : {}) }),
+        body: JSON.stringify({ chat_id: id, messages: history.map(({ role, content: c }) => ({ role, content: c })), ...(chat?.order ? { order_id: chat.order } : {}) }),
       });
       if (!response.ok) throw new Error("request failed");
       await readEvents(response, (event) => {
@@ -222,14 +222,14 @@ export default function Assistant() {
                   <p className="text-lg font-bold">Hi, how can I help?</p>
                   <p className="text-sm text-muted-foreground">I can tell you which orders need attention, why one is at risk, and what you could do about it.</p>
                 </div>
-                <div className="grid w-full gap-2">
+                <div className="grid w-full grid-cols-[minmax(0,1fr)] gap-2">
                   {SUGGESTIONS[chat?.order ? "order" : "general"].map((s) => (
                     <Button key={s} variant="outline" className="h-auto justify-start whitespace-normal py-2 text-left" onClick={() => send(s)}>{s}</Button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
                 {chat?.messages.map((m, i) => <Bubble key={i} m={m} />)}
                 {live && live.id === activeId && (live.content
                   ? <Bubble m={{ role: "assistant", content: `${live.content}▍` }} />
@@ -243,7 +243,7 @@ export default function Assistant() {
             )}
             <div ref={bottom} />
           </div>
-          <form className="grid gap-1.5 border-t p-3" onSubmit={(e) => { e.preventDefault(); send(text); }}>
+          <form className="grid grid-cols-[minmax(0,1fr)] gap-1.5 border-t p-3" onSubmit={(e) => { e.preventDefault(); send(text); }}>
             <div className="flex items-end gap-2">
               <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={2000} className="min-h-0 resize-none"
                         placeholder={chat?.order ? "Ask about this order…" : "Ask a question, or just say hello…"} aria-label="Your message"

@@ -143,7 +143,7 @@ export default function AppShell() {
           <OrderSearch />
           <div className="ml-auto flex items-center gap-2"><Automation /><ThemeMenu /></div>
         </header>
-        <main id="main" tabIndex={-1} className="mx-auto grid w-full max-w-[1500px] content-start gap-4 px-4 py-5 lg:px-6"><Outlet /></main>
+        <main id="main" tabIndex={-1} className="mx-auto grid w-full max-w-[1500px] grid-cols-[minmax(0,1fr)] content-start gap-4 px-4 py-5 lg:px-6"><Outlet /></main>
       </div>
     </div>
   );

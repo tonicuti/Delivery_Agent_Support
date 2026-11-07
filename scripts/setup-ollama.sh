@@ -7,7 +7,7 @@
 #   scripts/setup-ollama.sh --run-demo     # then run run-agent --live in Docker against this Ollama (throwaway DB)
 set -euo pipefail
 
-MODEL="qwen3:1.7b"   # must match the model name in src/backend/agent/recommendations.py
+MODEL="qwen3:1.7b"   # must match the model name in src/backend/ollama.py
 HOST_URL="http://localhost:11434"
 WAIT_SECONDS=60
 
