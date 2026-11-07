@@ -146,7 +146,7 @@ export default function Assistant() {
     try {
       const response = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
-        body: JSON.stringify({ messages: history.map(({ role, content: c }) => ({ role, content: c })), ...(chat?.order ? { order_id: chat.order } : {}) }),
+        body: JSON.stringify({ chat_id: id, messages: history.map(({ role, content: c }) => ({ role, content: c })), ...(chat?.order ? { order_id: chat.order } : {}) }),
       });
       if (!response.ok) throw new Error("request failed");
       await readEvents(response, (event) => {
