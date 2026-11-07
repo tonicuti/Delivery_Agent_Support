@@ -203,12 +203,12 @@ def main(argv: list[str] | None = None) -> int:
                 done = refresh_replacement_tasks(db, args.order_id, args.as_of)
             result = {"order_id": args.order_id, "tasks_completed": done}
         elif args.command == "ack-alert":
-            from .notifications import acknowledge_alert
+            from .alerts.notifications import acknowledge_alert
             with closing(connect(args.db)) as db:
                 acknowledged = acknowledge_alert(db, args.notification_id, args.at)
             result = {"notification_id": args.notification_id, "acknowledged_at_utc": acknowledged}
         elif args.command == "feedback":
-            from .notifications import record_feedback
+            from .alerts.notifications import record_feedback
             with closing(connect(args.db)) as db:
                 feedback_id = record_feedback(db, args.feedback_id, args.recommendation_id,
                                               args.chosen_action_id, args.recorded_by,

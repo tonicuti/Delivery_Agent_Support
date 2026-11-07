@@ -6,7 +6,7 @@ from sqlite3 import Connection
 from uuid import uuid4
 
 from .agent.playbooks import PLAYBOOKS
-from .notifications import record_feedback
+from .alerts.notifications import record_feedback
 
 DECISIONS = ("approved", "edited", "dismissed")
 ROLES = ("dispatcher", "dispatch_lead", "manager")

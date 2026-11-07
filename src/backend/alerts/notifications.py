@@ -3,7 +3,7 @@
 from datetime import datetime
 from sqlite3 import Connection
 
-from .features import _utc_text
+from ..features import _utc_text
 
 
 def acknowledge_alert(db: Connection, notification_id: str, at: datetime) -> str:

@@ -24,7 +24,7 @@ from .decisions import DECISIONS, DISMISS_REASONS, ROLES, record_decision
 from .agent.recommendations import OLLAMA_ENDPOINT, QWEN_MODEL
 from .db import connect
 from .features import _parse_utc, _utc_text
-from .notifications import acknowledge_alert
+from .alerts.notifications import acknowledge_alert
 from .replacements import approve_replacement, refresh_replacement_tasks
 from .scheduler import scheduler_once
 from .worklist import freeze_shift
