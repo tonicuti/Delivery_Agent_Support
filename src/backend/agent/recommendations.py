@@ -2,14 +2,10 @@
 
 from datetime import datetime, timedelta
 import json
-import os
 from urllib.request import Request, urlopen
 
 from ..features import _parse_utc
-
-QWEN_MODEL = "qwen3:1.7b"
-# Overridable so a container can reach Ollama on another host or compose service.
-OLLAMA_ENDPOINT = os.environ.get("OLLAMA_ENDPOINT", "http://127.0.0.1:11434/api/generate")
+from ..ollama import OLLAMA_ENDPOINT, QWEN_MODEL
 
 SCHEMA = {
     "type": "object",

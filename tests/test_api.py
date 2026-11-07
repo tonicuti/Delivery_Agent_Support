@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from backend.api import ApiContext, make_server
+from backend.db import connect
 from backend.migrations import migrate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -198,7 +199,8 @@ class ApiTests(unittest.TestCase):
         with urlopen(request, timeout=30) as response:
             self.assertTrue(response.headers["Content-Type"].startswith("text/event-stream"))
             events = [json.loads(line[6:]) for line in response.read().decode().splitlines() if line.startswith("data: ")]
-        self.assertEqual([e["type"] for e in events][:2], ["status", "status"])
+        self.assertEqual(next(e for e in events if e["type"] == "status"),
+                         {"type": "status", "text": "Checking which orders are most at risk…"})
         self.assertEqual("".join(e["text"] for e in events if e["type"] == "token"), "It is 1002.")
         self.assertEqual(events[-1]["type"], "done")
 
@@ -207,6 +209,15 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call("POST", "/api/chat", {"messages": [{"role": "assistant", "content": "hi"}]})[0], 400)
         self.assertEqual(self.call("POST", "/api/chat", {"messages": [{"role": "user", "content": "hi"}], "order_id": "x"})[0], 400)
         self.assertEqual(self.call("POST", "/api/chat/stream", {"messages": []})[0], 400)
+        for bad in ("../x", "", "a" * 65, 7):
+            self.assertEqual(self.call("POST", "/api/chat", {"messages": [{"role": "user", "content": "hi"}], "chat_id": bad})[0], 400, bad)
+
+    def test_chat_turns_are_kept_when_the_page_names_the_chat(self):
+        self.fake_model("Hello!")
+        self.assertEqual(self.call("POST", "/api/chat", {"messages": [{"role": "user", "content": "hi"}], "chat_id": "m1x2"})[0], 200)
+        with closing(connect(self.ctx.db_path, readonly=True)) as db:
+            self.assertEqual([r[0] for r in db.execute("SELECT role FROM chat_message WHERE chat_id = 'm1x2' ORDER BY message_id")],
+                             ["user", "assistant"])
 
     def test_customer_message_draft_in_requested_language(self):
         self.run_mock()

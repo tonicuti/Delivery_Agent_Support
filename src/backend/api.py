@@ -18,7 +18,9 @@ from uuid import uuid4
 from . import queries
 from .agent.mock_recommendation import mock_recommendation
 from .agent.playbooks import PLAYBOOKS
-from .chat import ChatUnavailable, LANGUAGES, Transport, _validate_messages, chat_events, draft_customer_message, run_chat
+from .chatbot import (ChatUnavailable, LANGUAGES, chat_events, draft_customer_message, run_chat, valid_chat_id,
+                      validate_messages)
+from .ollama import Transport
 from .labels import ACTION_TITLES, DECISION_WORDS, FEATURE_WORDS, ROLE_WORDS, STAGE_WORDS, STOCK_WORDS
 from .decisions import DECISIONS, DISMISS_REASONS, ROLES, record_decision
 from .agent.recommendations import OLLAMA_ENDPOINT, QWEN_MODEL
@@ -253,11 +255,15 @@ def _chat_arguments(ctx, body):
     order_id = body.get("order_id")
     if order_id is not None and not isinstance(order_id, int):
         raise ApiError(400, "order_id must be an integer")
+    chat_id = body.get("chat_id")
+    if chat_id is not None and not valid_chat_id(chat_id):
+        raise ApiError(400, "chat_id must be 1 to 64 letters, digits, dashes or underscores")
     try:
-        _validate_messages(body.get("messages"))
+        validate_messages(body.get("messages"))
     except ValueError as exc:
         raise ApiError(400, str(exc)) from exc
-    return dict(now=ctx.clock(), order_id=order_id, transport=ctx.llm_transport, endpoint=ctx.ollama_endpoint)
+    return dict(now=ctx.clock(), order_id=order_id, chat_id=chat_id, transport=ctx.llm_transport,
+                endpoint=ctx.ollama_endpoint)
 
 
 @route("POST", "/api/chat")
