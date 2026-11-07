@@ -11,6 +11,8 @@ from sqlite3 import Connection
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .external.weather import WEATHER_MAPPING_VERSION, classify_weather
+
 
 FEATURE_NAMES = (
     "hours_to_deadline", "item_count", "item_quantity", "weight_kg",
@@ -57,7 +59,7 @@ def build_features(db: Connection, order_id: int, decision_time: datetime) -> Fe
     at = _utc_text(decision_time)
     order = db.execute("""
         SELECT o.created_at_utc, c.customer_type, r.name AS region,
-               r.region_id, s.time_zone
+               r.region_id, s.site_id, s.time_zone
         FROM customer_order o
         JOIN customer c ON c.customer_id = o.customer_id
         JOIN delivery_site s ON s.site_id = o.site_id
@@ -195,6 +197,23 @@ def build_features(db: Connection, order_id: int, decision_time: datetime) -> Fe
         if travel:
             travel_hours = travel["travel_seconds"] / 3600
             sources["travel_hours"] = [f"travel_observation:{travel['observation_id']}"]
+    weather_hour = _utc_text(deadline.replace(minute=0, second=0, microsecond=0))
+    weather = db.execute("""
+        SELECT observation_id, precipitation_mm, wind_gust_m_s, fetched_at_utc
+        FROM weather_observation
+        WHERE site_id = ? AND valid_at_utc = ? AND fetched_at_utc <= ?
+        ORDER BY fetched_at_utc DESC, observation_id DESC LIMIT 1
+    """, (order["site_id"], weather_hour, at)).fetchone()
+    weather_severity = None
+    if weather and decision_time.astimezone(timezone.utc) - _parse_utc(weather["fetched_at_utc"]) <= timedelta(minutes=30):
+        try:
+            weather_severity = classify_weather(weather["precipitation_mm"],
+                                                weather["wind_gust_m_s"])
+        except ValueError:
+            pass
+        else:
+            sources["weather_severity"] = [f"weather_observation:{weather['observation_id']}"]
+
     local_date = deadline.astimezone(ZoneInfo(order["time_zone"])).date().isoformat()
     holiday = db.execute("""
         SELECT observation_id, is_holiday, fetched_at_utc FROM holiday_observation
@@ -215,7 +234,7 @@ def build_features(db: Connection, order_id: int, decision_time: datetime) -> Fe
         "actual_departure_delay_minutes": max(departures) if movements and len(departures) == len(movements) else None,
         "eta_delay_minutes": eta_delay,
         "travel_hours": travel_hours,
-        "weather_severity": None,
+        "weather_severity": weather_severity,
         "holiday_flag": holiday_flag,
         "customer_type": order["customer_type"],
         "stock_status": stock_status,
@@ -230,6 +249,6 @@ def build_features(db: Connection, order_id: int, decision_time: datetime) -> Fe
         promised_to_utc=promise["window_end_utc"], values=values,
         sources=sources, missing=[name for name, value in values.items() if value is None],
         limitations=["product and shipment assignment history is not recorded in the current schema",
-                     "weather_severity has no validated mapping from provider fields",
+                     f"weather_severity uses {WEATHER_MAPPING_VERSION} demo thresholds; training categories were synthetic",
                      "training holiday_flag was synthetic rather than calendar-derived"],
     )
