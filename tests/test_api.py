@@ -56,7 +56,7 @@ class ApiTests(unittest.TestCase):
 
     def test_health_and_unknown_route(self):
         status, body = self.call("GET", "/api/health")
-        self.assertEqual((status, body["schema_version"]), (200, 1))
+        self.assertEqual((status, body["schema_version"]), (200, 2))
         self.assertEqual(self.call("GET", "/api/nope")[0], 404)
         self.assertEqual(self.call("POST", "/api/health", {})[0], 405)
 
