@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Working copy of team SQLite (never commit; reset from source)
+.data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -2,8 +2,8 @@ import { Badge } from '@/shared/ui/badge'
 import { Input } from '@/shared/ui/input'
 import { Separator } from '@/shared/ui/separator'
 import { ClipboardList, Database, History, LineChart } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 
 const nav = [
   { to: '/', label: 'Orders needing attention', icon: ClipboardList, end: true },
@@ -24,6 +24,17 @@ function navClass({ isActive }: { isActive: boolean }) {
 type Props = { children: ReactNode }
 
 export function AppShell({ children }: Props) {
+  const navigate = useNavigate()
+  const [orderQuery, setOrderQuery] = useState('')
+
+  const onSearch = (e: FormEvent) => {
+    e.preventDefault()
+    const q = orderQuery.trim()
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    navigate({ pathname: '/', search: params.toString() ? `?${params}` : '' })
+  }
+
   return (
     <div className="flex min-h-svh flex-col">
       <a
@@ -39,7 +50,7 @@ export function AppShell({ children }: Props) {
             Delivery Risk Agent
           </div>
 
-          <Badge variant="secondary">Demo data</Badge>
+          <Badge variant="secondary">Session DB</Badge>
           <Badge variant="outline">Demo</Badge>
 
           <Separator orientation="vertical" className="hidden h-6 sm:block" />
@@ -59,24 +70,26 @@ export function AppShell({ children }: Props) {
             Warehouse
             <select
               className="h-8 cursor-pointer rounded-sm border border-border bg-background px-2 text-sm text-foreground"
-              defaultValue="SE-STO-01"
+              defaultValue="1"
               aria-label="Warehouse scope"
             >
-              <option value="SE-STO-01">SE-STO-01</option>
+              <option value="1">warehouse_id 1 (Stockholm)</option>
             </select>
           </label>
 
-          <div className="min-w-[12rem] flex-1">
+          <form onSubmit={onSearch} className="min-w-[12rem] flex-1">
             <Input
               type="search"
+              value={orderQuery}
+              onChange={(e) => setOrderQuery(e.target.value)}
               placeholder="Search order ID"
               aria-label="Search order ID"
               className="h-8"
             />
-          </div>
+          </form>
 
-          <Badge variant="outline" title="Mock freshness for F0">
-            Updated 3 min ago
+          <Badge variant="outline" title="Data from session SQLite copy">
+            Session copy
           </Badge>
 
           <span className="text-xs text-muted-foreground">dispatcher@demo</span>
