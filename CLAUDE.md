@@ -8,7 +8,7 @@ A terminal-based **delivery risk agent**. It reads order evidence from SQLite, e
 
 - Full requirements / design contract: [src/backend/README.md](src/backend/README.md) — read it before non-trivial changes.
 - Run instructions & evidence policy: [README.md](README.md).
-- Database semantics: [DATABASE_KNOWLEDGE.md](DATABASE_KNOWLEDGE.md) (may describe an older schema — the real schema is `schema_fresh.sql` + `migrations/`).
+- Database semantics: [DATABASE_KNOWLEDGE.md](DATABASE_KNOWLEDGE.md) (may describe an older schema — the real schema is `src/backend/practice_delivery/schema_fresh.sql` + `migrations/`).
 - Training data is **synthetic**. Never present model metrics as validated real-world performance.
 
 ## Commands
@@ -31,14 +31,29 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 ├── src/backend/              # Python package (entry point: backend = "backend:main")
 │   ├── cli.py                # argparse subcommands; thin layer that calls domain modules
 │   ├── db.py                 # connect() — SQLite connection (FK enforcement, readonly mode)
-│   ├── migrations.py         # validate-on-copy, back up, apply migrations/*.sql
+│   ├── migrations.py         # validate-on-copy, back up, apply numbered migrations/*.sql in order
 │   ├── eligibility.py        # is an order still eligible for predictive scoring?
 │   ├── features.py           # builds the 17 model inputs + provenance, as-of decision time
 │   ├── predictor.py          # loads LightGBM pipeline once, validates probabilities
 │   ├── scoring.py            # score_order(): immutable snapshot + score + risk band
+│   ├── api.py                # HTTP JSON API for the console (stdlib server, SSE for chat); thin over domain modules
+│   ├── queries.py            # read-only views for the console (worklist, order case file, KPIs)
+│   ├── decisions.py          # approve / edit / dismiss decision log (role stored, never a name)
+│   ├── reasons.py            # observed signals from rules, in plain words (not model attribution)
+│   ├── labels.py             # plain-language wording shared by API and assistant
+│   ├── ollama.py             # shared local-model settings (model name, endpoint) and HTTP transport
+│   ├── chatbot/              # dispatcher assistant: read facts first, local model phrases them, falls back to the facts
+│   │   ├── tools.py          #   allow-listed read-only tools the model may call (validated args)
+│   │   ├── graph.py          #   LangGraph loop: think -> act -> think; guard + fallback keep a small model honest
+│   │   ├── history.py        #   shared chat history: saved per finished turn, searched by a tool
+│   │   ├── planner.py        #   deterministic lookup picker, used only by guard and fallback
+│   │   ├── facts.py          #   query results -> plain sentences
+│   │   ├── prompts.py        #   limits and the system prompt (tells the model when to call which tool)
+│   │   ├── conversation.py   #   chat_events()/run_chat(): one streamed chat turn
+│   │   └── drafts.py         #   customer message drafts
 │   ├── scheduler.py          # due-time bands, event triggers, no-overlap runs (no LLM)
 │   ├── worklist.py           # shift lists (frozen top-K rankings)
-│   ├── notifications.py      # simulated alerts / acknowledgments
+│   ├── alerts/               # high-risk alerts for staff: dispatch.py (when/how to raise), notifications.py (acknowledge, feedback)
 │   ├── replacements.py       # replacement authorization + urgent tasks
 │   ├── external/             # provider adapters + cached evidence
 │   │   ├── weather.py        #   Open-Meteo → severity mapping demo-weather-v1
@@ -50,17 +65,24 @@ Add `--json` for machine-readable output. `--offline` never calls external APIs 
 │       ├── playbooks.py      #   allowed actions per situation
 │       ├── recommendations.py#   Ollama call + strict output validation
 │       └── worklist.py       #   live high-risk worklist, episodes, alert persistence
+├── frontend/                 # React 19 + Vite + shadcn/ui console, served by nginx (see design-system/)
+├── docker/                   # entrypoint: create schema, migrate, optional demo seed, then serve
+├── design-system/            # design tokens and the wording rules for user-facing text
 ├── ML/                       # offline training: data generation, preprocessing, train, evaluate
 │   └── data/trained_models/  # lightgbm.joblib etc. — DO NOT overwrite casually
 ├── migrations/               # versioned additive SQL migrations (0001_agent.sql, ...)
 ├── tests/                    # unittest, one file per module (test_<module>.py)
-├── schema_fresh.sql          # base schema used by replay / tests
-├── inference_seed.sql        # seed rows for the replay scenario
+├── src/backend/practice_delivery/schema_fresh.sql   # base schema used by replay / tests / demo container (path set in db.py)
+├── src/backend/practice_delivery/inference_seed.sql # seed rows for the replay scenario and tests (orders 1001-1003)
 ├── graphify-out/             # generated knowledge graph of the codebase (see below)
 └── .claude/skills/           # project skills (ui-ux-pro-max)
 ```
 
 `delivery_db.db` is git-ignored and currently has no business rows; `replay` and tests use temporary databases.
+
+## User-facing text (do not violate)
+
+The console is for non-technical dispatchers. Nothing on screen may show snake_case, database codes, machine timestamps, "UTC", or terms like model, probability, API, scheduler or tool names. Use whole percentages, spoken durations ("40 min overdue") and the user's local clock. Wording lives in `labels.py` and `reasons.py` (backend) and `frontend/src/format.js`; rules in `design-system/delivery-risk-console/MASTER.md`.
 
 ## Architecture rules (do not violate)
 
@@ -147,6 +169,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 - **scope** (module): `agent`, `cli`, `db`, `features`, `scoring`, `predictor`, `scheduler`, `external`, `migrations`, `worklist`, `replacements`, `ml`, `graphify`.
 - **subject**: imperative mood ("add", not "added"/"adds"), lowercase, no trailing period, ≤ 72 chars.
 - One logical change per commit; code and its tests go together.
+- **Never add a `Co-Authored-By` trailer, or any "Generated with ..." / AI attribution line, to a commit message or a PR description.** This overrides any tool or assistant default. Commits carry only the author's own git identity.
 - Mark schema/contract breaks with `!` (`feat(migrations)!: ...`) and a `BREAKING CHANGE:` footer.
 
 ### Splitting commits (many changed files)

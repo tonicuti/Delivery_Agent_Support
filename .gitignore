@@ -11,3 +11,4 @@ wheels/
 
 
 delivery_db.db
+node_modules/

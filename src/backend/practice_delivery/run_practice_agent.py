@@ -25,7 +25,7 @@ def main() -> None:
         parser.error("--as-of must include Z or a timezone offset")
     sys.path.insert(0, str(args.backend.resolve() / "src"))
     from backend.agent.graph import run_agent
-    from backend.cli import _mock_recommendation
+    from backend.agent.mock_recommendation import mock_recommendation
     from backend.agent.recommendations import request_qwen
 
     def local_qwen(evidence: dict, allowed_actions: dict[str, str],
@@ -34,7 +34,7 @@ def main() -> None:
                             decision_time=decision_time)
 
     state = run_agent(args.db.resolve(), args.order_id, at, offline=True,
-                      recommendation_client=local_qwen if args.qwen else _mock_recommendation)
+                      recommendation_client=local_qwen if args.qwen else mock_recommendation)
     print(json.dumps({
         "order_id": state["order_id"],
         "decision_time": state["decision_time"],

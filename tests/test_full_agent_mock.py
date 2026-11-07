@@ -13,13 +13,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from backend.agent.graph import run_agent
-from backend.cli import _mock_recommendation
+from backend.agent.mock_recommendation import mock_recommendation
 from backend.db import connect
 from backend.external.context import live_enrich
 from backend.features import build_features
 
 
+LIVE_MOCK_SQL = ROOT / "src" / "backend" / "practice_delivery" / "live_agent_mock.sql"
+
+
 class FullAgentMockTests(unittest.TestCase):
+    @unittest.skipUnless(LIVE_MOCK_SQL.is_file(),
+                         "live_agent_mock.sql was never committed, so build_practice_db.py cannot build this fixture")
     def test_live_mock_turns_api_weather_into_high_risk_recommendation(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "live_agent_mock.db"
@@ -63,7 +68,7 @@ class FullAgentMockTests(unittest.TestCase):
             self.assertEqual(context["holiday_flag"], 0)
 
             state = run_agent(path, 2001, at, offline=True,
-                              recommendation_client=_mock_recommendation)
+                              recommendation_client=mock_recommendation)
             self.assertEqual(state["risk_band"], "High")
             self.assertNotIn("review_conflicting_evidence", state["allowed_actions"])
             self.assertIsNotNone(state["recommendation"])

@@ -9,8 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from backend.db import connect
 from backend.migrations import migrate
 from backend.scoring import score_order
-from backend.agent.worklist import ensure_high_risk, persist_recommendation_and_alert, preview_high_risk
-from backend.notifications import acknowledge_alert, record_feedback
+from backend.agent.persistence import persist_recommendation_and_alert
+from backend.agent.worklist import ensure_high_risk, preview_high_risk
+from backend.alerts.notifications import acknowledge_alert, record_feedback
 from test_features import AT, fixture
 from test_predictor import ModelStub
 

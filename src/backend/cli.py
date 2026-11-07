@@ -3,15 +3,17 @@
 import argparse
 from contextlib import closing
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
+import os
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
 
-from .db import DEFAULT_DB, connect
+from .agent.mock_recommendation import mock_recommendation
+from .db import DEFAULT_DB, SCHEMA_SQL, SEED_SQL, connect
 from .features import FEATURE_NAMES, build_features
-from .migrations import migrate
+from .migrations import LATEST_VERSION, migrate
 from .scoring import score_order
 
 
@@ -31,43 +33,6 @@ def _approved_line(raw: str) -> tuple[int, float]:
         return int(line), float(quantity)
     except ValueError as exc:
         raise argparse.ArgumentTypeError("--line requires CLAIM_LINE_ID:QUANTITY") from exc
-
-
-def _mock_recommendation(evidence: dict, allowed_actions: dict[str, str],
-                         decision_time: str) -> dict:
-    """Deterministic offline proposal for the seeded ETA-delay demonstration."""
-    features = evidence["features"]
-    if (features.get("eta_delay_minutes") or 0) > 0 and "confirm_route" in allowed_actions:
-        action = "confirm_route"
-        prefix = "eta_update:"
-        summary = (f"Mock recommendation: ask transport to confirm the route and revised ETA; "
-                   f"the observed delay is {features['eta_delay_minutes']:.0f} minutes.")
-        missing = ["carrier confirmation of the revised ETA"]
-    elif features.get("stock_status") in {"short", "backorder"} and "check_stock" in allowed_actions:
-        action = "check_stock"
-        prefix = "stock_event:"
-        summary = "Mock recommendation: ask the warehouse to verify stock availability before dispatch."
-        missing = ["current available quantity and replenishment time"]
-    else:
-        action = "review_conflicting_evidence"
-        prefix = ""
-        summary = "Mock recommendation: ask the planner to review the available delivery evidence."
-        missing = list(evidence.get("missing", []))[:8]
-    refs = [ref for ref in evidence["evidence_ids"] if not prefix or ref.startswith(prefix)]
-    if not refs:
-        refs = list(evidence["evidence_ids"][:1])
-    if not refs:
-        raise ValueError("mock recommendation requires at least one evidence reference")
-    deadline = datetime.fromisoformat(decision_time.replace("Z", "+00:00")) + timedelta(minutes=30)
-    return {
-        "action_id": action,
-        "summary": summary,
-        "supporting_evidence_ids": refs[:3],
-        "suggested_owner": evidence["owner_team"],
-        "suggested_response_deadline": deadline.isoformat(timespec="seconds").replace("+00:00", "Z"),
-        "missing_information": missing,
-        "requires_human_review": True,
-    }
 
 
 def _inspect(db_path: Path) -> dict:
@@ -120,6 +85,12 @@ def main(argv: list[str] | None = None) -> int:
     scheduler.add_argument("--as-of", type=_as_of)
     scheduler.add_argument("--offline", action="store_true")
     scheduler.add_argument("--json", action="store_true")
+    server = subcommands.add_parser("serve", help="run the HTTP API for the planner console")
+    server.add_argument("--host", default="127.0.0.1")
+    server.add_argument("--port", type=int, default=8000)
+    server.add_argument("--scheduler-mode", choices=["off", "offline", "live"],
+                        default=os.environ.get("SCHEDULER_MODE", "off"),
+                        help="background scheduler: off, offline (no providers/Ollama) or live")
     shift = subcommands.add_parser("freeze-shift", help="freeze a region's review ranking")
     shift.add_argument("--shift-id", required=True)
     shift.add_argument("--region-id", type=int, required=True)
@@ -161,28 +132,27 @@ def main(argv: list[str] | None = None) -> int:
             result = {"database": str(args.db.resolve()), "schema_version": migrate(args.db)}
         elif args.command == "score":
             with closing(connect(args.db)) as db:
-                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
                     raise ValueError("run 'backend migrate' on this database before scoring")
                 result = asdict(score_order(db, args.order_id, args.as_of, trigger_id=args.trigger_id))
         elif args.command == "run-agent":
             from .agent.graph import run_agent
 
             with closing(connect(args.db, readonly=True)) as db:
-                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
                     raise ValueError("run 'backend migrate' on this database before running the agent")
             result = run_agent(args.db, args.order_id, args.as_of,
                                trigger_id=args.trigger_id, offline=args.offline)
         elif args.command == "replay":
             from .agent.graph import run_agent
 
-            root = Path(__file__).resolve().parents[2]
-            mock_client = _mock_recommendation if args.mock_recommendation else None
+            mock_client = mock_recommendation if args.mock_recommendation else None
             with TemporaryDirectory() as folder:
                 path = Path(folder) / "replay.db"
                 with closing(sqlite3.connect(path)) as db:
                     db.execute("PRAGMA foreign_keys = ON")
-                    db.executescript((root / "schema_fresh.sql").read_text(encoding="utf-8"))
-                    db.executescript((root / "inference_seed.sql").read_text(encoding="utf-8"))
+                    db.executescript(SCHEMA_SQL.read_text(encoding="utf-8"))
+                    db.executescript(SEED_SQL.read_text(encoding="utf-8"))
                 migrate(path, backup_path=Path(folder) / "replay.backup.db")
                 earlier = run_agent(path, 1002, _as_of("2026-11-06T11:40:00Z"),
                                     trigger_id="replay:eta-delay:before", offline=True,
@@ -195,13 +165,21 @@ def main(argv: list[str] | None = None) -> int:
             from .scheduler import scheduler_loop, scheduler_once
 
             with closing(connect(args.db, readonly=True)) as db:
-                if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
                     raise ValueError("run 'backend migrate' on this database before scheduler")
             if args.once:
                 result = {"runs": scheduler_once(args.db, now=args.as_of, offline=args.offline)}
             else:
                 scheduler_loop(args.db, offline=args.offline)
                 return 0
+        elif args.command == "serve":
+            from .api import serve
+
+            with closing(connect(args.db, readonly=True)) as db:
+                if db.execute("PRAGMA user_version").fetchone()[0] != LATEST_VERSION:
+                    raise ValueError("run 'backend migrate' on this database before serve")
+            serve(args.db, host=args.host, port=args.port, scheduler_mode=args.scheduler_mode)
+            return 0
         elif args.command == "freeze-shift":
             from .worklist import freeze_shift
             with closing(connect(args.db)) as db:
@@ -224,12 +202,12 @@ def main(argv: list[str] | None = None) -> int:
                 done = refresh_replacement_tasks(db, args.order_id, args.as_of)
             result = {"order_id": args.order_id, "tasks_completed": done}
         elif args.command == "ack-alert":
-            from .notifications import acknowledge_alert
+            from .alerts.notifications import acknowledge_alert
             with closing(connect(args.db)) as db:
                 acknowledged = acknowledge_alert(db, args.notification_id, args.at)
             result = {"notification_id": args.notification_id, "acknowledged_at_utc": acknowledged}
         elif args.command == "feedback":
-            from .notifications import record_feedback
+            from .alerts.notifications import record_feedback
             with closing(connect(args.db)) as db:
                 feedback_id = record_feedback(db, args.feedback_id, args.recommendation_id,
                                               args.chosen_action_id, args.recorded_by,

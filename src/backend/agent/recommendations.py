@@ -6,7 +6,7 @@ import json
 from urllib.request import Request, urlopen
 
 from ..features import _parse_utc
-
+from ..ollama import OLLAMA_ENDPOINT, QWEN_MODEL
 
 SCHEMA = {
     "type": "object",
@@ -75,7 +75,7 @@ def validate_recommendation(candidate: object, *, allowed_actions: set[str],
 
 
 def request_qwen(evidence: dict, *, allowed_actions: dict[str, str],
-                 decision_time: str, endpoint: str = "http://127.0.0.1:11434/api/generate",
+                 decision_time: str, endpoint: str = OLLAMA_ENDPOINT,
                  transport=None) -> dict:
     """Generate one structured proposal; caller handles unavailable Ollama."""
     output_schema = deepcopy(SCHEMA)
@@ -105,8 +105,10 @@ Choose one staff action and return one JSON object matching output_schema:
   the allowed action best supported by non-null observed features; use
   review_conflicting_evidence when no specific action has sufficient evidence.
 - In summary, briefly state the observed operational fact and the staff check
-  requested by the selected action. For changed evidence, name only the changed
-  fields; their earlier values and direction are unknown. Do not invent facts.
+  requested by the selected action, in plain everyday words a dispatcher would
+  use: never mention the model, probabilities, field names, codes or evidence
+  IDs. For changed evidence, name only the changed fields; their earlier values
+  and direction are unknown. Do not invent facts.
 - Cite at least one relevant ID from evidence.evidence_ids. For a feature named
   in summary, prefer its IDs in evidence.feature_sources. Never invent a source.
 - Set missing_information to exactly evidence.missing. Null feature values are
@@ -124,7 +126,7 @@ INPUT JSON:
     )
     if len(prompt) > 12000:
         raise ValueError("recommendation prompt exceeds the size limit")
-    payload = {"model": "qwen3:1.7b", "prompt": prompt, "format": output_schema,
+    payload = {"model": QWEN_MODEL, "prompt": prompt, "format": output_schema,
                "stream": False, "think": False,
                "options": {"temperature": 0, "num_predict": 320}}
     request = Request(endpoint, data=json.dumps(payload).encode("utf-8"),

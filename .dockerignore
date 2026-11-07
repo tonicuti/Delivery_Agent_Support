@@ -1,0 +1,35 @@
+# VCS / editor / agent tooling
+.git
+.gitignore
+.claude
+graphify-out
+*.sqbpro
+
+# Python artefacts (the image builds its own venv)
+.venv
+__pycache__
+*.py[oc]
+build
+dist
+*.egg-info
+
+# Local databases never go into an image; use the /data volume
+*.db
+*.db-journal
+*.backup.db
+
+# Training inputs are large and not needed at inference time.
+# Keep ML/data/trained_models (lightgbm.joblib is loaded at runtime).
+ML/data/order_outcomes.csv
+ML/data/source_events.csv
+# training_snapshots.csv is kept: tests/test_predictor.py reads its first row
+ML/*.py
+ML/*.md
+
+# Frontend is built from its own context
+frontend
+
+# Docker files themselves
+Dockerfile
+docker-compose*.yml
+.dockerignore

@@ -9,10 +9,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from backend.db import SCHEMA_SQL
 from backend.features import build_features
 
 
-ROOT = Path(__file__).resolve().parents[1]
 AT = datetime(2026, 11, 6, 9, 30, tzinfo=timezone.utc)
 
 
@@ -21,7 +21,7 @@ def fixture() -> sqlite3.Connection:
     db = sqlite3.connect(":memory:")
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA foreign_keys = ON")
-    db.executescript((ROOT / "schema_fresh.sql").read_text(encoding="utf-8"))
+    db.executescript(SCHEMA_SQL.read_text(encoding="utf-8"))
     db.executescript("""
         INSERT INTO planning_region VALUES (1, 'Stockholm');
         INSERT INTO management_team VALUES (1, 'Planning');
