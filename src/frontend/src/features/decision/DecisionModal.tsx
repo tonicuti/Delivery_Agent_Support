@@ -97,8 +97,7 @@ export function DecisionModal({
             Cannot record decision
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            This case has no <span className="font-mono">agent_recommendation</span>{' '}
-            row. Feedback must link to a recommendation_id (schema).
+            This order has no suggestion yet, so a decision cannot be saved.
           </p>
           <Button type="button" className="mt-4" onClick={onClose}>
             Close
@@ -109,19 +108,19 @@ export function DecisionModal({
   }
 
   const validate = (): string | null => {
-    if (!actingRole.trim()) return 'Acting role is required.'
+    if (!actingRole.trim()) return 'Your role is required.'
     if (kind === 'approve') {
       if (!rec.action_id) {
-        return 'Approve needs a validated recommended action. Use Edit or Dismiss instead.'
+        return 'Approve needs a ready suggestion. Use Edit or Dismiss instead.'
       }
     }
     if (kind === 'edit') {
-      if (!chosenAction) return 'Choose a playbook action.'
-      if (!reason.trim()) return 'Reason is required when editing the suggestion.'
+      if (!chosenAction) return 'Choose an action.'
+      if (!reason.trim()) return 'Please add a reason when changing the suggestion.'
     }
     if (kind === 'dismiss') {
-      if (!dismissGroup) return 'Select a dismiss reason group.'
-      if (!reason.trim()) return 'Reason is required when dismissing.'
+      if (!dismissGroup) return 'Select why you are dismissing this.'
+      if (!reason.trim()) return 'Please add a reason when dismissing.'
     }
     return null
   }
@@ -172,7 +171,7 @@ export function DecisionModal({
       setSubmitError(
         e instanceof Error
           ? e.message
-          : 'Failed to save decision',
+          : 'Could not save your decision',
       )
     } finally {
       setSubmitting(false)
@@ -201,7 +200,7 @@ export function DecisionModal({
           className="mt-3 rounded-sm border border-risk-medium/40 bg-risk-medium/10 px-3 py-2 text-sm text-foreground"
           role="note"
         >
-          No changes will be made to ERP or TMS
+          This only saves your choice. Your order and transport systems are not changed.
         </div>
 
         <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
@@ -212,28 +211,28 @@ export function DecisionModal({
             </dd>
           </div>
           <div className="flex items-center gap-1">
-            <dt>Risk</dt>
+            <dt>Chance of delay</dt>
             <dd>
               <RiskBadge risk={detail.risk_band} />
             </dd>
           </div>
           <div className="sm:col-span-2">
-            <dt className="inline">Promise </dt>
+            <dt className="inline">Promised delivery </dt>
             <dd className="inline text-foreground">
               {formatPromiseWindow(detail)}
             </dd>
           </div>
           <div className="sm:col-span-2">
-            <dt className="inline">Snapshot </dt>
+            <dt className="inline">Last updated </dt>
             <dd className="inline text-foreground">
-              {formatUtc(detail.order_snapshot.as_of_utc)} · score{' '}
+              {formatUtc(detail.order_snapshot.as_of_utc)} · last check{' '}
               {formatUtc(detail.risk_score.scored_at_utc)}
             </dd>
           </div>
           <div className="sm:col-span-2">
-            <dt className="inline">Current recommendation </dt>
-            <dd className="inline capitalize text-foreground">
-              {casePlaybookLabel(rec.action_id)} ({rec.validation_status})
+            <dt className="inline">Current suggestion </dt>
+            <dd className="inline text-foreground">
+              {casePlaybookLabel(rec.action_id)}
             </dd>
           </div>
         </dl>
@@ -273,7 +272,7 @@ export function DecisionModal({
         {kind === 'edit' ? (
           <label className="mt-3 block space-y-1 text-sm">
             <span className="text-xs font-medium text-muted-foreground">
-              Chosen playbook action
+              Chosen action
             </span>
             <select
               className="h-9 w-full cursor-pointer rounded-sm border border-border bg-background px-2 text-sm"
@@ -296,7 +295,7 @@ export function DecisionModal({
         {kind === 'dismiss' ? (
           <label className="mt-3 block space-y-1 text-sm">
             <span className="text-xs font-medium text-muted-foreground">
-              Dismiss reason group
+              Why dismiss?
             </span>
             <select
               className="h-9 w-full cursor-pointer rounded-sm border border-border bg-background px-2 text-sm"
@@ -328,7 +327,7 @@ export function DecisionModal({
               onChange={(e) => setReason(e.target.value)}
               onBlur={() => {
                 if (!reason.trim()) {
-                  setFieldError('Reason is required for Edit / Dismiss.')
+                  setFieldError('Please add a reason for Edit or Dismiss.')
                 }
               }}
             />
@@ -337,7 +336,7 @@ export function DecisionModal({
 
         <label className="mt-3 block space-y-1 text-sm">
           <span className="text-xs font-medium text-muted-foreground">
-            Business notes
+            Notes
           </span>
           <textarea
             className="min-h-[3.5rem] w-full rounded-sm border border-border bg-background px-2 py-1.5 text-sm"
@@ -360,7 +359,7 @@ export function DecisionModal({
           />
         </label>
         <p className="mt-1 text-[10px] text-muted-foreground">
-          Recorded as {actingRole} (demo single-user)
+          Recorded as {actingRole} (demo)
         </p>
 
         {fieldError ? (
@@ -379,7 +378,7 @@ export function DecisionModal({
                 disabled={submitting}
                 onClick={() => void onReload()}
               >
-                Reload case
+                Reload order
               </Button>
             ) : null}
           </div>

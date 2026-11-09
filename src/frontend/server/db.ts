@@ -83,7 +83,18 @@ export function resetSessionFromSource(): {
 export function ensureSessionDb(): { source: string; session: string; created: boolean } {
   const source = resolveSourceDbPath()
   const session = resolveSessionDbPath()
-  ensureSourceExists(source)
+
+  // Demo resilience: if golden source is missing but a session copy already
+  // exists, keep serving the session so local demos are not blocked.
+  if (!fs.existsSync(source)) {
+    if (fs.existsSync(session)) {
+      console.warn(
+        `[delivery-db-api] source DB missing at ${source}; using existing session copy`,
+      )
+      return { source, session, created: false }
+    }
+    ensureSourceExists(source)
+  }
 
   if (!fs.existsSync(session)) {
     resetSessionFromSource()

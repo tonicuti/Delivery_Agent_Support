@@ -19,9 +19,9 @@ export const DRAFT_LANGUAGES: {
   id: DraftLanguage
   label: string
 }[] = [
-  { id: 'sv', label: 'Swedish (sv)' },
-  { id: 'no', label: 'Norwegian (no)' },
-  { id: 'da', label: 'Danish (da)' },
+  { id: 'sv', label: 'Swedish' },
+  { id: 'no', label: 'Norwegian' },
+  { id: 'da', label: 'Danish' },
 ]
 
 /** Default from AppShell country scope SE → Swedish. */
@@ -45,7 +45,7 @@ export function buildDraftFacts(detail: CaseDetail): DraftFact[] {
     },
     {
       id: 'promise',
-      label: 'Promised window',
+      label: 'Promised delivery',
       value: formatPromiseWindow(detail),
       verified: detail.promise_version != null,
     },
@@ -71,7 +71,7 @@ export function buildDraftFacts(detail: CaseDetail): DraftFact[] {
   if (eta) {
     facts.push({
       id: 'current_eta',
-      label: 'Current ETA (system)',
+      label: 'Expected arrival (from system)',
       value: formatUtc(eta),
       // ETA from TMS feed — treat as needs customer-safe verification
       verified: false,

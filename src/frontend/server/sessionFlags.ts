@@ -14,6 +14,11 @@ export type SessionFlags = {
   simulate_conflict_on_save: boolean
   /** Force Risk increased badge on worklist rows (demo). */
   simulate_risk_increase: boolean
+  /**
+   * Demo: delivery reached the address but was returned.
+   * Triggers a Very High urgent screen alert.
+   */
+  simulate_delivery_return: boolean
 }
 
 export const DEFAULT_SESSION_FLAGS: SessionFlags = {
@@ -22,6 +27,7 @@ export const DEFAULT_SESSION_FLAGS: SessionFlags = {
   force_stale_scores: false,
   simulate_conflict_on_save: false,
   simulate_risk_increase: false,
+  simulate_delivery_return: false,
 }
 
 export function normalizeSessionFlags(
@@ -33,6 +39,7 @@ export function normalizeSessionFlags(
     force_stale_scores: Boolean(raw?.force_stale_scores),
     simulate_conflict_on_save: Boolean(raw?.simulate_conflict_on_save),
     simulate_risk_increase: Boolean(raw?.simulate_risk_increase),
+    simulate_delivery_return: Boolean(raw?.simulate_delivery_return),
   }
 }
 

@@ -10,6 +10,7 @@ import {
   emptyHistoryFilters,
 } from '@/features/history'
 import type { HistoryFilterState } from '@/features/history/historyFormat'
+import { PageHero } from '@/shared/ui/PageHero'
 
 export function HistoryPage() {
   const { episodeId: routeEpisodeId } = useParams()
@@ -30,7 +31,7 @@ export function HistoryPage() {
       const data = await api.getHistory({})
       setRows(data)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load history')
+      setError(err instanceof Error ? err.message : 'Could not load alert history')
     } finally {
       setLoading(false)
     }
@@ -54,11 +55,6 @@ export function HistoryPage() {
     [visible, selectedId],
   )
 
-  const modelOptions = useMemo(
-    () =>
-      [...new Set(rows.map((r) => r.risk_score.model_version))].sort(),
-    [rows],
-  )
   const warehouseOptions = useMemo(
     () =>
       [
@@ -93,19 +89,16 @@ export function HistoryPage() {
 
   return (
     <section className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">History</h1>
-        <p className="text-muted-foreground">
-          Risk episodes: what the system knew at alert, what it suggested, what
-          staff decided, and delivery outcome when known.
-        </p>
-      </div>
+      <PageHero
+        tone="history"
+        title="History"
+        description="Alert history: what the system knew at the time, what it suggested, what staff decided, and delivery outcome when known."
+      />
 
       <HistoryFilters
         value={filters}
         onChange={setFilters}
         onClear={() => setFilters(emptyHistoryFilters())}
-        modelOptions={modelOptions}
         warehouseOptions={warehouseOptions}
       />
 
@@ -126,7 +119,7 @@ export function HistoryPage() {
         <div className="rounded-sm border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
           {filtersActive ? (
             <>
-              <p>No episodes match the current filters.</p>
+              <p>No alerts match the current filters.</p>
               <button
                 type="button"
                 className="mt-2 cursor-pointer text-primary underline-offset-2 hover:underline"
@@ -136,7 +129,7 @@ export function HistoryPage() {
               </button>
             </>
           ) : (
-            <p>No risk episodes in session history yet.</p>
+            <p>No alerts in history yet.</p>
           )}
         </div>
       ) : null}
@@ -161,7 +154,7 @@ export function HistoryPage() {
 
       {!loading && selectedId && !selected && visible.length > 0 ? (
         <p className="text-sm text-muted-foreground">
-          Episode not in the filtered list.{' '}
+          This alert is not in the filtered list.{' '}
           <button
             type="button"
             className="cursor-pointer text-primary underline-offset-2 hover:underline"

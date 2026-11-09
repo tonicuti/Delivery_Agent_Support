@@ -1,5 +1,4 @@
-import { Badge } from '@/shared/ui/badge'
-import { formatUtc, type CaseReason } from './caseFormat'
+import type { CaseReason } from './caseFormat'
 
 type Props = { reasons: CaseReason[] }
 
@@ -10,12 +9,11 @@ export function CaseReasons({ reasons }: Props) {
         id="case-reasons-heading"
         className="text-sm font-semibold tracking-tight"
       >
-        Why this order is at risk
+        Why this order may be late
       </h2>
       {reasons.length === 0 ? (
         <p className="rounded-sm border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-          No structured reason codes in the current snapshot. Check stock,
-          warehouse and transport below before acting.
+          No clear reason yet. Check stock and delivery times below.
         </p>
       ) : (
         <ul className="space-y-1.5">
@@ -24,16 +22,10 @@ export function CaseReasons({ reasons }: Props) {
               key={r.id}
               className="rounded-sm border border-border bg-card px-3 py-2"
             >
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-medium">{r.label}</h3>
-                {r.needsVerification ? (
-                  <Badge variant="outline">Needs verification</Badge>
-                ) : null}
-              </div>
-              <p className="mt-0.5 text-sm text-muted-foreground">{r.evidence}</p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {r.source} · {formatUtc(r.updated_at_utc)}
-              </p>
+              <h3 className="text-sm font-medium">{r.label}</h3>
+              {r.evidence ? (
+                <p className="mt-0.5 text-sm text-muted-foreground">{r.evidence}</p>
+              ) : null}
             </li>
           ))}
         </ul>

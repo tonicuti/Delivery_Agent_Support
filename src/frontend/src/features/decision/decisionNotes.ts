@@ -63,10 +63,10 @@ export function parseDecisionNotes(
 export function executionBadgeLabel(status: ExecutionStatus): string {
   switch (status) {
     case 'user_confirmed_performed':
-      return 'User-confirmed'
+      return 'Confirmed by you'
     case 'unable_to_perform':
-      return 'Unable to perform'
+      return 'Could not be done'
     default:
-      return 'Execution pending'
+      return 'Waiting for follow-up'
   }
 }

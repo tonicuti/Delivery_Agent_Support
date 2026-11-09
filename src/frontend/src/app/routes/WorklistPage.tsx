@@ -7,6 +7,7 @@ import type { WorklistFilterState } from '@/features/worklist/WorklistFilters'
 import { WorklistSummary } from '@/features/worklist/WorklistSummary'
 import { WorklistTable } from '@/features/worklist/WorklistTable'
 import { isUnacknowledged } from '@/features/worklist/worklistFormat'
+import { PageHero } from '@/shared/ui/PageHero'
 
 function filtersFromSearch(params: URLSearchParams): WorklistFilterState {
   return {
@@ -83,7 +84,7 @@ export function WorklistPage() {
       })
       setData(res)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load worklist')
+      setError(err instanceof Error ? err.message : 'Could not load orders')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -154,7 +155,7 @@ export function WorklistPage() {
         )
         await load({ soft: true })
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Restore alert failed')
+        setError(err instanceof Error ? err.message : 'Could not restore the alert')
       } finally {
         setPendingNotificationId(null)
       }
@@ -177,7 +178,7 @@ export function WorklistPage() {
       })
       await load({ soft: true })
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Acknowledge failed')
+      setError(err instanceof Error ? err.message : 'Could not mark the alert as seen')
     } finally {
       setPendingNotificationId(null)
     }
@@ -197,16 +198,11 @@ export function WorklistPage() {
 
   return (
     <section className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Orders needing attention
-        </h1>
-        <p className="text-muted-foreground">
-          Orders needing attention in demo scope (Stockholm WH1). Ranked by{' '}
-          <span className="font-mono text-xs">p_late</span> for now — not full
-          Priority = P(late)×impact×urgency.
-        </p>
-      </div>
+      <PageHero
+        tone="orders"
+        title="Orders needing attention"
+        description="Open orders for the Stockholm warehouse, sorted by how likely they are to arrive late."
+      />
 
       {data ? (
         <WorklistSummary
@@ -228,7 +224,7 @@ export function WorklistPage() {
 
       {refreshing && data ? (
         <p className="text-xs text-muted-foreground" role="status">
-          Refreshing… showing last snapshot.
+          Refreshing… showing the last update for now.
         </p>
       ) : null}
 
@@ -237,14 +233,14 @@ export function WorklistPage() {
           {error}
           {data ? (
             <span className="mt-1 block text-xs text-muted-foreground">
-              Showing last successful snapshot from {data.generated_at_utc}.
+              Showing the last successful update from {data.generated_at_utc}.
             </span>
           ) : null}
         </p>
       ) : null}
 
       {loading && !data ? (
-        <div className="space-y-2" aria-busy="true" aria-label="Loading worklist">
+        <div className="space-y-2" aria-busy="true" aria-label="Loading orders">
           <div className="h-10 animate-pulse rounded-sm bg-muted" />
           <div className="h-40 animate-pulse rounded-sm bg-muted" />
         </div>
@@ -288,7 +284,8 @@ export function WorklistPage() {
         >
           <span>
             Alert for{' '}
-            <span className="font-medium">{undoAck.orderLabel}</span> acknowledged.
+            <span className="font-medium">{undoAck.orderLabel}</span> marked as
+            seen.
           </span>
           <button
             type="button"

@@ -1,7 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
+import { AssistantPage } from './routes/AssistantPage'
 import { CaseDetailPage } from './routes/CaseDetailPage'
-import { DataHealthPage } from './routes/DataHealthPage'
 import { DemoControlsPage } from './routes/DemoControlsPage'
 import { HistoryPage } from './routes/HistoryPage'
 import { HomePage } from './routes/HomePage'
@@ -20,13 +20,14 @@ function OpsLayout() {
 export function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
       <Route element={<OpsLayout />}>
+        <Route index element={<HomePage />} />
         <Route path="dashboard" element={<WorklistPage />} />
         <Route path="cases/:orderId" element={<CaseDetailPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="history/:episodeId" element={<HistoryPage />} />
-        <Route path="data-health" element={<DataHealthPage />} />
+        <Route path="chat" element={<AssistantPage />} />
+        <Route path="data-health" element={<Navigate to="/chat" replace />} />
         <Route path="performance" element={<PerformancePage />} />
         <Route path="performance/report" element={<PerformanceReportPage />} />
         <Route path="demo-controls" element={<DemoControlsPage />} />

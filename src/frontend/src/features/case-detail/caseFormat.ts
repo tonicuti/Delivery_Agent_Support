@@ -1,3 +1,5 @@
+import { playbookLabel as decisionPlaybookLabel } from '@/features/decision/playbooks'
+import { RISK_BAND_SHORT } from '@/shared/uiLabels'
 import {
   DATA_STALE_MINUTES,
   type CaseDetail,
@@ -24,7 +26,7 @@ export function formatAge(iso: string, now = Date.now()): string {
 
 export function formatPromiseWindow(detail: CaseDetail): string {
   const pv = detail.promise_version
-  if (!pv) return 'Cannot assess — promised window missing'
+  if (!pv) return 'Not enough info — promised delivery time is missing'
   return `${formatUtc(pv.window_start_utc)} → ${formatUtc(pv.window_end_utc)}`
 }
 
@@ -38,18 +40,18 @@ export function formatTimeLeft(detail: CaseDetail): {
   }
   if (h < 0) {
     return {
-      label: `${Math.abs(h).toFixed(1)}h past promise end`,
+      label: `${Math.abs(h).toFixed(1)}h past promised time`,
       kind: 'hours_to_deadline',
     }
   }
   if (h < 1) {
     return {
-      label: `${Math.round(h * 60)} min to promise end`,
+      label: `${Math.round(h * 60)} min left`,
       kind: 'hours_to_deadline',
     }
   }
   return {
-    label: `${h.toFixed(1)} h to promise end`,
+    label: `${h.toFixed(1)} h left`,
     kind: 'hours_to_deadline',
   }
 }
@@ -70,12 +72,12 @@ export type CaseReason = {
 }
 
 const REASON_LABELS: Record<string, string> = {
-  stock_short: 'Stock shortage on order lines',
+  stock_short: 'Low stock on items in this order',
   stock_backorder: 'Items on backorder',
   pick_behind: 'Picking is behind schedule',
-  pack_missing: 'Packing has not been recorded',
-  eta_delay: 'Current ETA is past the promise window',
-  departure_delay: 'Departure is delayed',
+  pack_missing: 'Packing not recorded yet',
+  eta_delay: 'Expected arrival is later than promised',
+  departure_delay: 'Truck left later than planned',
 }
 
 /** Prefer model reason codes; if empty, derive ≤3 from observable snapshot/events. */
@@ -85,8 +87,8 @@ export function buildCaseReasons(detail: CaseDetail): CaseReason[] {
     return fromCodes.map((code) => ({
       id: code,
       label: REASON_LABELS[code] ?? humanizeCode(code),
-      evidence: `Model reason code “${code}” from the latest risk score. Confirm against warehouse and transport evidence below.`,
-      source: 'risk_score',
+      evidence: '',
+      source: 'Latest check',
       updated_at_utc: detail.risk_score.scored_at_utc,
       needsVerification: true,
     }))
@@ -106,10 +108,8 @@ export function buildCaseReasons(detail: CaseDetail): CaseReason[] {
     reasons.push({
       id: 'stock_backorder',
       label: REASON_LABELS.stock_backorder,
-      evidence: line
-        ? `Line ${line.line_no} (${line.product.name}) is backorder. Latest stock event recorded ${formatAge(line.latest_stock_event!.recorded_at_utc)}.`
-        : `Order snapshot stock_status is backorder as of ${formatUtc(snap.as_of_utc)}.`,
-      source: line ? 'stock_event / WMS' : 'order_snapshot',
+      evidence: line ? `${line.product.name} is on backorder.` : '',
+      source: line ? 'Stock update' : 'Order data',
       updated_at_utc:
         line?.latest_stock_event?.recorded_at_utc ?? snap.as_of_utc,
       needsVerification: true,
@@ -119,10 +119,8 @@ export function buildCaseReasons(detail: CaseDetail): CaseReason[] {
     reasons.push({
       id: 'stock_short',
       label: REASON_LABELS.stock_short,
-      evidence: line
-        ? `Line ${line.line_no} (${line.product.name}) is short. Latest stock event recorded ${formatAge(line.latest_stock_event!.recorded_at_utc)}.`
-        : `Order snapshot stock_status is short as of ${formatUtc(snap.as_of_utc)}.`,
-      source: line ? 'stock_event / WMS' : 'order_snapshot',
+      evidence: line ? `${line.product.name} is low on stock.` : '',
+      source: line ? 'Stock update' : 'Order data',
       updated_at_utc:
         line?.latest_stock_event?.recorded_at_utc ?? snap.as_of_utc,
       needsVerification: true,
@@ -142,10 +140,8 @@ export function buildCaseReasons(detail: CaseDetail): CaseReason[] {
     reasons.push({
       id: 'pack_missing',
       label: REASON_LABELS.pack_missing,
-      evidence: pickEv
-        ? `Pick started at ${formatUtc(pickEv.occurred_at_utc)}. No pack event received yet. Warehouse events last updated ${formatAge(pickEv.recorded_at_utc)}.`
-        : `Snapshot stage is pick_started; packing has not been recorded.`,
-      source: 'warehouse_event / WMS',
+      evidence: 'Picking has started; packing not recorded yet.',
+      source: 'Warehouse update',
       updated_at_utc: pickEv?.recorded_at_utc ?? snap.as_of_utc,
       needsVerification: true,
     })
@@ -156,10 +152,8 @@ export function buildCaseReasons(detail: CaseDetail): CaseReason[] {
     reasons.push({
       id: 'eta_delay',
       label: REASON_LABELS.eta_delay,
-      evidence: eta
-        ? `Current ETA ${formatUtc(eta.current_eta_at_utc)} vs promise end ${formatUtc(detail.promise_version?.window_end_utc)}. Snapshot eta_delay_minutes = ${snap.eta_delay_minutes}.`
-        : `Snapshot eta_delay_minutes = ${snap.eta_delay_minutes}. Confirm carrier ETA.`,
-      source: eta ? 'eta_update / TMS' : 'order_snapshot',
+      evidence: `About ${snap.eta_delay_minutes} min later than promised.`,
+      source: eta ? 'Transport update' : 'Order data',
       updated_at_utc: eta?.recorded_at_utc ?? snap.as_of_utc,
       needsVerification: true,
     })
@@ -170,8 +164,8 @@ export function buildCaseReasons(detail: CaseDetail): CaseReason[] {
     reasons.push({
       id: 'departure_delay',
       label: REASON_LABELS.departure_delay,
-      evidence: `Snapshot actual_departure_delay_minutes = ${snap.actual_departure_delay_minutes}.`,
-      source: 'order_snapshot',
+      evidence: `Left ${snap.actual_departure_delay_minutes} min late.`,
+      source: 'Order data',
       updated_at_utc: snap.as_of_utc,
       needsVerification: true,
     })
@@ -238,14 +232,14 @@ export function recommendationUiStatus(
  */
 export function decisionBlockedReason(detail: CaseDetail): string | null {
   if (detail.customer_order.cancelled_at_utc) {
-    return 'Order is cancelled — recording a new decision on the old recommendation is disabled.'
+    return 'Order is cancelled — you can no longer record a decision on the earlier suggestion.'
   }
   const ship = detail.shipment?.status
   if (ship === 'delivered') {
-    return 'Shipment is delivered — approve/dismiss on the old recommendation is disabled. Use History for the record.'
+    return 'Shipment is delivered — you can no longer approve or dismiss the earlier suggestion. See Alert history for the record.'
   }
   if (ship === 'cancelled') {
-    return 'Shipment is cancelled — decide CTA is disabled for this recommendation.'
+    return 'Shipment is cancelled — you can no longer choose an action for this suggestion.'
   }
   return null
 }
@@ -289,13 +283,13 @@ export function parseRecommendationOutput(
       error: typeof o.error === 'string' ? o.error : null,
     }
   } catch {
-    return { ...empty, error: 'Could not parse recommendation output_json' }
+    return { ...empty, error: 'Could not read this suggestion' }
   }
 }
 
 export function playbookLabel(action: PlaybookActionId | null): string {
   if (!action) return 'No suggestion yet'
-  return action.replace(/_/g, ' ')
+  return decisionPlaybookLabel(action)
 }
 
 export type RiskHistoryEvent = {
@@ -310,52 +304,40 @@ export function buildRiskHistory(detail: CaseDetail): RiskHistoryEvent[] {
     {
       id: 'episode-open',
       at_utc: detail.risk_episode.opened_at_utc,
-      label: 'Risk episode opened',
-      detail: `episode_id ${detail.risk_episode.episode_id}`,
+      label: 'Alert opened',
+      detail: '',
     },
     {
       id: 'score',
       at_utc: detail.risk_score.scored_at_utc,
-      label: 'Risk score recorded',
-      detail: `p_late ${detail.risk_score.p_late.toFixed(3)} · band ${detail.risk_band} (model probability, not a certainty)`,
+      label: 'Chance of delay checked',
+      detail: `${Math.round(detail.risk_score.p_late * 100)}% · ${RISK_BAND_SHORT[detail.risk_band] ?? detail.risk_band}`,
     },
   ]
-  if (detail.agent_recommendation) {
+  if (detail.agent_recommendation?.action_id) {
     events.push({
       id: 'rec',
       at_utc: detail.agent_recommendation.created_at_utc,
-      label: 'Agent recommendation',
-      detail: `${detail.agent_recommendation.validation_status}${
-        detail.agent_recommendation.action_id
-          ? ` · ${detail.agent_recommendation.action_id}`
-          : ''
-      }`,
+      label: 'Suggestion',
+      detail: playbookLabel(detail.agent_recommendation.action_id),
     })
   }
-  if (detail.simulated_notification) {
+  if (detail.simulated_notification?.acknowledged_at_utc) {
     events.push({
-      id: 'ntf',
-      at_utc: detail.simulated_notification.created_at_utc,
-      label: 'Alert created',
-      detail: `kind ${detail.simulated_notification.kind}`,
+      id: 'ack',
+      at_utc: detail.simulated_notification.acknowledged_at_utc,
+      label: 'Marked as seen',
+      detail: '',
     })
-    if (detail.simulated_notification.acknowledged_at_utc) {
-      events.push({
-        id: 'ack',
-        at_utc: detail.simulated_notification.acknowledged_at_utc,
-        label: 'Alert acknowledged',
-        detail: 'simulated_notification.acknowledged_at_utc',
-      })
-    }
   }
   if (detail.planner_feedback) {
     events.push({
       id: 'feedback',
       at_utc: detail.planner_feedback.recorded_at_utc,
-      label: 'Planner decision recorded',
+      label: 'Decision saved',
       detail: detail.planner_feedback.chosen_action_id
-        ? `chosen ${detail.planner_feedback.chosen_action_id}`
-        : 'dismiss / no action',
+        ? playbookLabel(detail.planner_feedback.chosen_action_id)
+        : 'Dismissed',
     })
   }
   return events.sort(

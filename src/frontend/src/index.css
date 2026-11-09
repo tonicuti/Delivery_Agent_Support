@@ -1,6 +1,15 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 
+/* Leaflet map inside admin cards */
+.leaflet-container {
+  font: inherit;
+  z-index: 0;
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+}
+
 /*
   Radius scale — Google Cloud / Material admin style (subtle), not AI-pill UI.
   4px controls · 8px panels · never rounded-full for badges/buttons in this app.

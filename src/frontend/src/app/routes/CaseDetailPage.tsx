@@ -49,7 +49,7 @@ export function CaseDetailPage() {
 
   const load = useCallback(async () => {
     if (!Number.isFinite(id)) {
-      setError('Invalid order id')
+      setError('Invalid order number')
       setLoading(false)
       return
     }
@@ -60,7 +60,7 @@ export function CaseDetailPage() {
       setDetail(res)
     } catch (err: unknown) {
       setDetail(null)
-      setError(err instanceof Error ? err.message : 'Failed to load case')
+      setError(err instanceof Error ? err.message : 'Could not load this order')
     } finally {
       setLoading(false)
     }
@@ -86,8 +86,8 @@ export function CaseDetailPage() {
     await load()
     setToast(
       result.worklist_reopened
-        ? 'Decision withdrawn. Order is active on the worklist again.'
-        : 'Decision withdrawn. Showing the previous decision if any.',
+        ? 'Decision withdrawn. Order is open again on Orders needing attention.'
+        : 'Decision withdrawn.',
     )
   }
 
@@ -102,9 +102,7 @@ export function CaseDetailPage() {
   const onDecisionSaved = async (input: FeedbackInput) => {
     await saveFeedback(input)
     setModalOpen(false)
-    setToast(
-      'Decision recorded. No ERP or TMS changes have been made. Complete the action in the source system, then confirm what was done.',
-    )
+    setToast('Your choice was saved.')
   }
 
   const reasons = useMemo(
@@ -117,9 +115,9 @@ export function CaseDetailPage() {
   )
 
   return (
-    <section className="space-y-6 pb-8">
+    <section className="space-y-4 pb-8">
       {loading && !detail ? (
-        <div className="space-y-2" aria-busy="true" aria-label="Loading case">
+        <div className="space-y-2" aria-busy="true" aria-label="Loading order">
           <div className="h-10 animate-pulse rounded-sm bg-muted" />
           <div className="h-40 animate-pulse rounded-sm bg-muted" />
         </div>
@@ -131,7 +129,7 @@ export function CaseDetailPage() {
             to={backTo}
             className="inline-flex h-8 cursor-pointer items-center rounded-sm border border-border bg-card px-3 text-sm hover:bg-muted"
           >
-            ← Back to worklist
+            ← Back to orders
           </Link>
           <p className="rounded-sm border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive">
             {error}
@@ -145,19 +143,36 @@ export function CaseDetailPage() {
 
           <CaseDataHealthBanners detail={detail} />
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
             <div className="min-w-0 space-y-4">
               <CaseReasons reasons={reasons} />
               <CaseOrderLines detail={detail} />
               <CaseWarehouseTimeline detail={detail} />
               <CaseTransport detail={detail} />
-              <CustomerMessageDraft
-                detail={detail}
-                onToast={(message) => setToast(message)}
-              />
-              <CaseRiskHistory events={history} />
+
+              <details className="rounded-sm border border-border bg-card px-3 py-2">
+                <summary className="cursor-pointer select-none text-sm font-medium text-muted-foreground hover:text-foreground">
+                  More options
+                </summary>
+                <div className="mt-3 space-y-4">
+                  <CustomerMessageDraft
+                    detail={detail}
+                    onToast={(message) => setToast(message)}
+                  />
+                  <CaseRiskHistory events={history} />
+                  <p className="text-xs text-muted-foreground">
+                    <Link
+                      to={`/chat?order=${detail.customer_order.order_id}&ref=${encodeURIComponent(detail.customer_order.external_order_id)}`}
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      Ask about this order
+                    </Link>
+                  </p>
+                </div>
+              </details>
             </div>
-            <aside className="min-w-0 space-y-3 xl:sticky xl:top-24 xl:self-start">
+
+            <aside className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
               <CaseRecommendation detail={detail} onDecide={onDecide} />
               {detail.planner_feedback ? (
                 <DecisionRecord
@@ -177,7 +192,7 @@ export function CaseDetailPage() {
             onClose={() => setModalOpen(false)}
             onReload={async () => {
               await load()
-              setToast('Case reloaded. Review evidence, then save again if needed.')
+              setToast('Page refreshed.')
             }}
             onSubmit={onDecisionSaved}
           />

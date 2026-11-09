@@ -10,9 +10,10 @@ import { api } from '@/api'
 import type { SessionFlags } from '@/shared/types'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
+import { PageHero } from '@/shared/ui/PageHero'
 
 /**
- * F8 demo affordances — session flags only. Not production ops.
+ * Presenter-only switches — turn on edge cases during a live demo.
  */
 export function DemoControlsPage() {
   const [flags, setFlags] = useState<SessionFlags | null>(null)
@@ -24,7 +25,7 @@ export function DemoControlsPage() {
     try {
       setFlags(await api.getSessionFlags())
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load flags')
+      setError(err instanceof Error ? err.message : 'Could not load demo settings')
     }
   }, [])
 
@@ -37,8 +38,9 @@ export function DemoControlsPage() {
     setError(null)
     try {
       setFlags(await api.setSessionFlags(partial))
+      window.dispatchEvent(new Event('dra-session-flags-changed'))
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update flags')
+      setError(err instanceof Error ? err.message : 'Could not update demo settings')
     } finally {
       setBusy(false)
     }
@@ -47,29 +49,40 @@ export function DemoControlsPage() {
   const active = useMemo(() => {
     if (!flags) return [] as string[]
     const out: string[] = []
-    if (!flags.agent_enabled) out.push('AI assist off')
-    if (flags.force_ai_unavailable) out.push('Force AI unavailable')
-    if (flags.force_stale_scores) out.push('Force stale scores')
-    if (flags.simulate_conflict_on_save) out.push('Next save → conflict 409')
-    if (flags.simulate_risk_increase) out.push('Risk increased badge')
+    if (!flags.agent_enabled) out.push('Suggestions off')
+    if (flags.force_ai_unavailable) out.push('Suggestions unavailable')
+    if (flags.force_stale_scores) out.push('Outdated checks')
+    if (flags.simulate_conflict_on_save) out.push('Next save may conflict')
+    if (flags.simulate_risk_increase) out.push('Getting riskier badge')
+    if (flags.simulate_delivery_return) out.push('Returned delivery (Very High)')
     return out
   }, [flags])
 
   return (
     <section className="mx-auto max-w-2xl space-y-4">
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-lg font-semibold tracking-tight">
-            Demo controls
-          </h1>
-          <Badge variant="secondary">Not production</Badge>
-          <Badge variant="outline">Session DB only</Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Toggle simulated F8 scenarios (AI failure, stale data, save conflict,
-          risk increase). Affects the session DB copy only — not ERP/TMS and not
-          the team source database.
-        </p>
+      <PageHero
+        tone="home"
+        title="Demo controls"
+        description="For the person running the demo. Flip these switches to show special situations (no suggestion, outdated data, save conflict). They only change this demo — not real warehouse or transport systems."
+      />
+
+      <div className="rounded-sm border border-border bg-card px-3 py-3 text-sm">
+        <h2 className="text-sm font-semibold">What is this for?</h2>
+        <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-muted-foreground">
+          <li>Keep everything off for the normal happy-path demo.</li>
+          <li>
+            Turn one switch on when you want to show an edge case (for example
+            “suggestions unavailable”).
+          </li>
+          <li>
+            Go to{' '}
+            <Link to="/dashboard" className="font-medium text-primary hover:underline">
+              Orders needing attention
+            </Link>{' '}
+            (or an order page) and point at the badge / message that appeared.
+          </li>
+          <li>Use Clear all before the next scenario.</li>
+        </ol>
       </div>
 
       <div
@@ -77,11 +90,11 @@ export function DemoControlsPage() {
         role="status"
       >
         <div className="text-xs font-medium text-muted-foreground">
-          Currently active
+          Currently on
         </div>
         {active.length === 0 ? (
           <p className="mt-0.5 text-muted-foreground">
-            None — worklist and cases use normal session data.
+            None — normal demo data. Good for the main walkthrough.
           </p>
         ) : (
           <ul className="mt-1 flex flex-wrap gap-1.5">
@@ -104,54 +117,74 @@ export function DemoControlsPage() {
         <div className="h-24 animate-pulse rounded-sm bg-muted" aria-busy="true" />
       ) : (
         <div className="space-y-4">
-          <FlagGroup title="1. AI assist">
+          <FlagGroup title="Suggestions">
             <FlagRow
-              label="AI assist enabled"
-              what="Allow agent suggestions on cases."
-              where="Data health badge · Case → AI recommendation"
+              label="Suggestions enabled"
+              when="Leave on for the normal demo."
+              effect="Suggested next steps appear on orders."
               checked={flags.agent_enabled}
               disabled={busy}
               onChange={(v) => void patch({ agent_enabled: v })}
               onLabel="On"
-              offLabel="Off → Unavailable"
+              offLabel="Off → no suggestion"
             />
             <FlagRow
-              label="Force AI unavailable"
-              what="Mask every suggestion as Unavailable (even if AI is on)."
-              where="Worklist AI n/a chip · Case Decide still works (manual)"
+              label="Make suggestions unavailable"
+              when="You want to show “no suggestion available” and decide by hand."
+              effect="Every order shows No suggestion. Choosing an action still works."
               checked={flags.force_ai_unavailable}
               disabled={busy}
               onChange={(v) => void patch({ force_ai_unavailable: v })}
             />
           </FlagGroup>
 
-          <FlagGroup title="2. Data freshness">
+          <FlagGroup title="Data freshness">
             <FlagRow
-              label="Force stale scores"
-              what="Shift scored_at_utc past the 90-minute demo threshold."
-              where="Worklist Flags · Stale · Case banner / Stale score"
+              label="Make checks look outdated"
+              when="You want to show the Outdated warning."
+              effect="Orders get an Outdated badge and a banner on the order page."
               checked={flags.force_stale_scores}
               disabled={busy}
               onChange={(v) => void patch({ force_stale_scores: v })}
             />
           </FlagGroup>
 
-          <FlagGroup title="3. Decision resilience">
+          <FlagGroup title="Urgent screen alerts">
             <FlagRow
-              label="Simulate concurrent decision"
-              what="Next Save decision returns 409 once, then clears itself."
-              where="Open case → Decide → Save · form kept · Reload case"
-              checked={flags.simulate_conflict_on_save}
+              label="Simulate returned delivery (Very High)"
+              when="You want a pop-up while working: arrived but returned."
+              effect="A red Very High alert appears on screen with Open order."
+              checked={flags.simulate_delivery_return}
               disabled={busy}
-              onChange={(v) => void patch({ simulate_conflict_on_save: v })}
+              onChange={(v) => {
+                if (v) {
+                  try {
+                    sessionStorage.removeItem('dra-urgent-alerts-dismissed')
+                  } catch {
+                    /* ignore */
+                  }
+                }
+                void patch({ simulate_delivery_return: v })
+              }}
             />
             <FlagRow
-              label="Simulate risk increase"
-              what="Force Risk increased badge (same episode, no duplicate row)."
-              where="Worklist Risk column · Case header"
+              label="Show “Getting riskier”"
+              when="You want to show risk rising on the same alert."
+              effect="Orders list and order header show Getting riskier."
               checked={flags.simulate_risk_increase}
               disabled={busy}
               onChange={(v) => void patch({ simulate_risk_increase: v })}
+            />
+          </FlagGroup>
+
+          <FlagGroup title="While saving a decision">
+            <FlagRow
+              label="Simulate a save conflict"
+              when="You want to show two people saving at once."
+              effect="The next save fails once with a conflict, then clears itself."
+              checked={flags.simulate_conflict_on_save}
+              disabled={busy}
+              onChange={(v) => void patch({ simulate_conflict_on_save: v })}
             />
           </FlagGroup>
         </div>
@@ -165,7 +198,7 @@ export function DemoControlsPage() {
           disabled={busy}
           onClick={() => void load()}
         >
-          Refresh flags
+          Refresh
         </Button>
         <Button
           type="button"
@@ -179,16 +212,17 @@ export function DemoControlsPage() {
               force_stale_scores: false,
               simulate_conflict_on_save: false,
               simulate_risk_increase: false,
+              simulate_delivery_return: false,
             })
           }
         >
-          Clear all forces
+          Clear all
         </Button>
         <Link
           to="/dashboard"
-          className="ml-auto text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          className="ml-auto text-xs font-medium text-primary underline-offset-2 hover:underline"
         >
-          ← Back to worklist to verify
+          Go check on orders →
         </Link>
       </div>
     </section>
@@ -214,8 +248,8 @@ function FlagGroup({
 
 function FlagRow({
   label,
-  what,
-  where,
+  when,
+  effect,
   checked,
   disabled,
   onChange,
@@ -223,8 +257,8 @@ function FlagRow({
   offLabel = 'Off',
 }: {
   label: string
-  what: string
-  where: string
+  when: string
+  effect: string
   checked: boolean
   disabled: boolean
   onChange: (next: boolean) => void
@@ -235,29 +269,25 @@ function FlagRow({
     <li
       className={[
         'rounded-sm border px-3 py-2.5',
-        checked
-          ? 'border-foreground/25 bg-muted/40'
-          : 'border-border bg-card',
+        checked ? 'border-foreground/25 bg-muted/40' : 'border-border bg-card',
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="text-sm font-medium">{label}</div>
           <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground/80">What: </span>
-            {what}
+            <span className="font-medium text-foreground/80">Use when: </span>
+            {when}
           </p>
           <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground/80">Check on: </span>
-            {where}
+            <span className="font-medium text-foreground/80">What you will see: </span>
+            {effect}
           </p>
         </div>
         <label className="flex shrink-0 cursor-pointer flex-col items-end gap-1 text-xs">
           <span
             className={
-              checked
-                ? 'font-semibold text-foreground'
-                : 'text-muted-foreground'
+              checked ? 'font-semibold text-foreground' : 'text-muted-foreground'
             }
           >
             {checked ? onLabel : offLabel}

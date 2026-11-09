@@ -25,7 +25,7 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
     defaultDraftLanguage(detail.delivery_site.country_code ?? 'SE'),
   )
   const [draft, setDraft] = useState('')
-  const [dirty, setDirty] = useState(false)
+  const [, setDirty] = useState(false)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
     'idle',
   )
@@ -82,7 +82,7 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
         </h2>
         {hasUnverified ? (
           <Badge variant="outline" className="text-risk-medium">
-            Unverified facts
+            Unconfirmed details
           </Badge>
         ) : null}
         <span className="text-xs font-normal text-muted-foreground">
@@ -92,7 +92,7 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
 
       <div className="mt-3 space-y-3">
       <p className="text-xs text-muted-foreground">
-        Does not send email or SMS. Never claims ERP/TMS actions already ran.
+        Does not send email or SMS. The draft never says an action has already been done.
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -124,7 +124,7 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
       </div>
 
       <div>
-        <h3 className="text-xs font-medium text-muted-foreground">Facts used</h3>
+        <h3 className="text-xs font-medium text-muted-foreground">Details used</h3>
         <ul className="mt-1 space-y-1">
           {facts.map((f) => (
             <li
@@ -135,7 +135,7 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
               <span className="text-muted-foreground">{f.value}</span>
               {!f.verified ? (
                 <Badge variant="outline" className="text-[10px] text-risk-medium">
-                  Unverified
+                  Unconfirmed
                 </Badge>
               ) : null}
             </li>
@@ -148,8 +148,8 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
           className="rounded-sm border border-risk-medium/30 bg-risk-medium/10 px-2 py-1.5 text-xs text-foreground"
           role="status"
         >
-          Warning: some facts are not customer-confirmed (e.g. system ETA or
-          derived delay reasons). Review before copying.
+          Some details are not confirmed with the customer (for example the
+          expected arrival or the reason for the delay). Review before copying.
         </p>
       ) : null}
 
@@ -177,12 +177,12 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
           size="sm"
           variant="outline"
           disabled
-          title="Sending not connected in MVP"
+          title="Not available yet"
         >
           Send
         </Button>
         <span className="text-xs text-muted-foreground">
-          Send disabled — not connected in MVP
+          Sending is not available yet
         </span>
       </div>
       </div>

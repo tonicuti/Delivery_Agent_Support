@@ -54,7 +54,7 @@ export function DecisionRecord({
         recorded_at_utc: new Date().toISOString(),
       })
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Update failed')
+      setError(e instanceof Error ? e.message : 'Could not update')
     } finally {
       setBusy(false)
     }
@@ -75,7 +75,7 @@ export function DecisionRecord({
   const onUnable = async () => {
     if (!parsed) return
     if (!unableReason.trim()) {
-      setError('Reason is required when marking unable to perform.')
+      setError('Please say why it could not be done.')
       return
     }
     await persist({
@@ -114,8 +114,8 @@ export function DecisionRecord({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Stored in session <span className="font-mono">planner_feedback</span> only.
-        Fulfilment stage and ERP/TMS are unchanged.
+        This app only saved your choice. Your order, warehouse, and transport
+        systems are unchanged.
       </p>
 
       <dl className="grid gap-2 text-sm sm:grid-cols-2">
@@ -137,13 +137,13 @@ export function DecisionRecord({
         ) : null}
         {dismissLabel ? (
           <div className="sm:col-span-2">
-            <dt className="text-xs text-muted-foreground">Dismiss group</dt>
+            <dt className="text-xs text-muted-foreground">Why dismissed</dt>
             <dd>{dismissLabel}</dd>
           </div>
         ) : null}
         {parsed?.business_notes ? (
           <div className="sm:col-span-2">
-            <dt className="text-xs text-muted-foreground">Business notes</dt>
+            <dt className="text-xs text-muted-foreground">Notes</dt>
             <dd>{parsed.business_notes}</dd>
           </div>
         ) : null}
@@ -154,19 +154,19 @@ export function DecisionRecord({
           </div>
         ) : null}
         <div>
-          <dt className="text-xs text-muted-foreground">Execution</dt>
+          <dt className="text-xs text-muted-foreground">Follow-up</dt>
           <dd>
             <Badge variant="outline">
               {executionBadgeLabel(parsed?.execution.status ?? 'pending')}
             </Badge>
             <span className="ml-2 text-xs text-muted-foreground">
-              (never system-verified from this UI)
+              (not checked by this app)
             </span>
           </dd>
         </div>
         {parsed?.execution.reason ? (
           <div className="sm:col-span-2">
-            <dt className="text-xs text-muted-foreground">Execution note</dt>
+            <dt className="text-xs text-muted-foreground">Follow-up note</dt>
             <dd>{parsed.execution.reason}</dd>
           </div>
         ) : null}
@@ -174,22 +174,22 @@ export function DecisionRecord({
 
       <div className="space-y-2 border-t border-border pt-3">
         <p className="text-xs font-medium text-muted-foreground">
-          Complete in source system, then confirm here
+          Do the work in your own systems, then confirm here
         </p>
         <div className="flex flex-wrap gap-2">
           <a
             href={erpHref}
             className="inline-flex h-8 items-center rounded-sm border border-border bg-background px-2.5 text-xs text-muted-foreground hover:bg-muted"
           >
-            Open in ERP
-            <span className="ml-1 text-[10px]">Demo link (simulated)</span>
+            Open order system
+            <span className="ml-1 text-[10px]">Demo link</span>
           </a>
           <a
             href={tmsHref}
             className="inline-flex h-8 items-center rounded-sm border border-border bg-background px-2.5 text-xs text-muted-foreground hover:bg-muted"
           >
-            Open in TMS
-            <span className="ml-1 text-[10px]">Demo link (simulated)</span>
+            Open transport system
+            <span className="ml-1 text-[10px]">Demo link</span>
           </a>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -199,7 +199,7 @@ export function DecisionRecord({
             disabled={busy || parsed?.execution.status === 'user_confirmed_performed'}
             onClick={onConfirmPerformed}
           >
-            Confirm action performed
+            Confirm it was done
           </Button>
           <Button
             type="button"
@@ -208,7 +208,7 @@ export function DecisionRecord({
             disabled={busy}
             onClick={() => setShowUnable((v) => !v)}
           >
-            Unable to perform
+            Could not do it
           </Button>
           <Button
             type="button"
@@ -233,8 +233,8 @@ export function DecisionRecord({
         {confirmDelete ? (
           <div className="rounded-sm border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
             <p>
-              Remove this decision from the session DB? If no older decision
-              remains, the order returns to the active worklist.
+              Withdraw this decision? If there is no earlier decision, the order
+              returns to Orders needing attention.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Button
@@ -251,7 +251,7 @@ export function DecisionRecord({
                       setConfirmDelete(false)
                     } catch (e: unknown) {
                       setError(
-                        e instanceof Error ? e.message : 'Delete failed',
+                        e instanceof Error ? e.message : 'Could not withdraw',
                       )
                     } finally {
                       setBusy(false)
@@ -277,7 +277,7 @@ export function DecisionRecord({
           <div className="space-y-2">
             <label className="block space-y-1 text-sm">
               <span className="text-xs text-muted-foreground">
-                Why unable (required)
+                Why it could not be done (required)
               </span>
               <textarea
                 className="min-h-[3rem] w-full rounded-sm border border-border bg-background px-2 py-1.5 text-sm"
@@ -292,7 +292,7 @@ export function DecisionRecord({
               disabled={busy}
               onClick={() => void onUnable()}
             >
-              Save unable status
+              Save
             </Button>
           </div>
         ) : null}

@@ -1,6 +1,7 @@
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import type { CustomerType, RiskBand, WarehouseStage } from '@/shared/types'
+import { WAREHOUSE_STAGE_LABEL } from '@/shared/uiLabels'
 
 export type WorklistFilterState = {
   q: string
@@ -22,6 +23,14 @@ type Props = {
 const selectClass =
   'h-8 cursor-pointer rounded-sm border border-border bg-card px-2 text-sm text-foreground'
 
+const STAGE_OPTIONS: WarehouseStage[] = [
+  'waiting',
+  'pick_started',
+  'packed',
+  'loaded',
+  'departed',
+]
+
 export function WorklistFilters({
   value,
   onChange,
@@ -40,19 +49,19 @@ export function WorklistFilters({
           type="search"
           value={value.q}
           onChange={(e) => patch({ q: e.target.value })}
-          placeholder="order_id or external_order_id"
-          aria-label="Search order ID"
+          placeholder="Search by order number"
+          aria-label="Search by order number"
           className="h-8"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Risk
+        Chance of delay
         <select
           className={selectClass}
           value={value.risk}
           onChange={(e) => patch({ risk: e.target.value as WorklistFilterState['risk'] })}
-          aria-label="Filter by risk band"
+          aria-label="Filter by chance of delay"
         >
           <option value="">All</option>
           <option value="High">High</option>
@@ -72,41 +81,41 @@ export function WorklistFilters({
           aria-label="Filter by customer type"
         >
           <option value="">All</option>
-          <option value="B2B">B2B</option>
-          <option value="B2C">B2C</option>
+          <option value="B2B">Business</option>
+          <option value="B2C">Consumer</option>
         </select>
       </label>
 
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Warehouse stage
+        Warehouse progress
         <select
           className={selectClass}
           value={value.stage}
           onChange={(e) =>
             patch({ stage: e.target.value as WorklistFilterState['stage'] })
           }
-          aria-label="Filter by warehouse stage"
+          aria-label="Filter by warehouse progress"
         >
           <option value="">All</option>
-          <option value="waiting">waiting</option>
-          <option value="pick_started">pick_started</option>
-          <option value="packed">packed</option>
-          <option value="loaded">loaded</option>
-          <option value="departed">departed</option>
+          {STAGE_OPTIONS.map((s) => (
+            <option key={s} value={s}>
+              {WAREHOUSE_STAGE_LABEL[s]}
+            </option>
+          ))}
         </select>
       </label>
 
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        Notification
+        Alert
         <select
           className={selectClass}
           value={value.ack}
           onChange={(e) => patch({ ack: e.target.value as WorklistFilterState['ack'] })}
-          aria-label="Filter by acknowledgment"
+          aria-label="Filter by alert status"
         >
           <option value="">All</option>
-          <option value="unacked">Unacknowledged</option>
-          <option value="acked">Acknowledged</option>
+          <option value="unacked">Unread</option>
+          <option value="acked">Marked as seen</option>
         </select>
       </label>
 
@@ -117,7 +126,7 @@ export function WorklistFilters({
           checked={value.includeLow}
           onChange={(e) => patch({ includeLow: e.target.checked })}
         />
-        Include Low risk
+        Include low chance
       </label>
 
       <Button type="button" variant="outline" size="sm" onClick={onClear}>

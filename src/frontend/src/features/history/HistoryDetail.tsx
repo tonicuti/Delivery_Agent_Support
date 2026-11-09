@@ -17,6 +17,12 @@ import {
   parseReasonCodes,
   recommendedAction,
 } from './historyFormat'
+import {
+  reasonCodeLabel,
+  stockStatusLabel,
+  validationStatusLabel,
+  warehouseStageLabel,
+} from '@/shared/uiLabels'
 
 type Props = {
   row: HistoryRow
@@ -36,15 +42,15 @@ export function HistoryDetail({ row, onClose }: Props) {
   return (
     <aside
       className="flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-sm border border-border bg-card"
-      aria-label="Episode detail"
+      aria-label="Alert detail"
     >
       <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
         <div>
           <h2 className="text-sm font-semibold tracking-tight">
             {row.customer_order.external_order_id}
           </h2>
-          <p className="font-mono text-xs text-muted-foreground">
-            {row.risk_episode.episode_id}
+          <p className="text-xs text-muted-foreground">
+            Opened {formatUtc(row.risk_episode.opened_at_utc)}
           </p>
         </div>
         <Button type="button" size="sm" variant="ghost" onClick={onClose}>
@@ -56,43 +62,34 @@ export function HistoryDetail({ row, onClose }: Props) {
         <div className="flex flex-wrap gap-2">
           <RiskBadge risk={row.risk_band} />
           <Badge variant="outline">{outcome}</Badge>
-          {intervened(row) ? <Badge variant="secondary">Intervened</Badge> : null}
+          {intervened(row) ? <Badge variant="secondary">Action taken</Badge> : null}
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Snapshot and score are from{' '}
-          <span className="font-medium text-foreground">opening_score_id</span>{' '}
-          (alert-time replay), not live case state. No “Saved by AI” label.
+          This shows what was known when the alert was raised, not the current
+          state of the order.
         </p>
 
         <section className="space-y-1">
           <h3 className="text-xs font-medium text-muted-foreground">At alert</h3>
           <dl className="grid gap-1 text-xs sm:grid-cols-2">
             <div>
-              <dt className="text-muted-foreground">Promised to</dt>
+              <dt className="text-muted-foreground">Promised delivery</dt>
               <dd>{formatUtc(row.order_snapshot.promised_to_utc)}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Snapshot as_of</dt>
+              <dt className="text-muted-foreground">Last update</dt>
               <dd>{formatUtc(row.order_snapshot.as_of_utc)}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">p_late</dt>
-              <dd className="font-mono">
-                {row.risk_score.p_late.toFixed(3)} (model probability)
-              </dd>
+              <dt className="text-muted-foreground">Chance of delay</dt>
+              <dd>{Math.round(row.risk_score.p_late * 100)}%</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Model</dt>
-              <dd className="break-all font-mono text-[10px]">
-                {row.risk_score.model_version}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Stage / stock</dt>
+              <dt className="text-muted-foreground">Warehouse stage / stock</dt>
               <dd>
-                {row.order_snapshot.warehouse_stage ?? '—'} /{' '}
-                {row.order_snapshot.stock_status ?? '—'}
+                {warehouseStageLabel(row.order_snapshot.warehouse_stage)} /{' '}
+                {stockStatusLabel(row.order_snapshot.stock_status)}
               </dd>
             </div>
             <div>
@@ -101,15 +98,15 @@ export function HistoryDetail({ row, onClose }: Props) {
             </div>
           </dl>
           <div className="pt-1">
-            <div className="text-xs text-muted-foreground">Reason codes</div>
+            <div className="text-xs text-muted-foreground">Why it was flagged</div>
             {reasons.length === 0 ? (
-              <p className="text-xs text-muted-foreground">[] (empty in score)</p>
+              <p className="text-xs text-muted-foreground">No reasons recorded.</p>
             ) : (
               <ul className="mt-1 flex flex-wrap gap-1">
                 {reasons.map((r) => (
                   <li key={r}>
-                    <Badge variant="outline" className="font-mono font-normal">
-                      {r}
+                    <Badge variant="outline" className="font-normal">
+                      {reasonCodeLabel(r)}
                     </Badge>
                   </li>
                 ))}
@@ -120,12 +117,12 @@ export function HistoryDetail({ row, onClose }: Props) {
 
         <section className="space-y-1">
           <h3 className="text-xs font-medium text-muted-foreground">
-            Recommendation
+            Suggestion
           </h3>
           <p className="text-xs">{recommendedAction(row)}</p>
           {row.agent_recommendation ? (
             <p className="text-xs text-muted-foreground">
-              {row.agent_recommendation.validation_status} ·{' '}
+              {validationStatusLabel(row.agent_recommendation.validation_status)} ·{' '}
               {formatUtc(row.agent_recommendation.created_at_utc)}
             </p>
           ) : null}
@@ -144,7 +141,7 @@ export function HistoryDetail({ row, onClose }: Props) {
                 <dd>{decisionLabel(row)}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Chosen action</dt>
+                <dt className="text-muted-foreground">Chosen step</dt>
                 <dd>{decision.chosen}</dd>
               </div>
               <div>
@@ -155,7 +152,7 @@ export function HistoryDetail({ row, onClose }: Props) {
               </div>
               {dismissLabel ? (
                 <div>
-                  <dt className="text-muted-foreground">Dismiss group</dt>
+                  <dt className="text-muted-foreground">Dismiss reason type</dt>
                   <dd>{dismissLabel}</dd>
                 </div>
               ) : null}
@@ -166,7 +163,7 @@ export function HistoryDetail({ row, onClose }: Props) {
                 </div>
               ) : null}
               <div>
-                <dt className="text-muted-foreground">Execution</dt>
+                <dt className="text-muted-foreground">Follow-up</dt>
                 <dd>
                   <Badge variant="outline">
                     {executionBadgeLabel(
@@ -184,11 +181,11 @@ export function HistoryDetail({ row, onClose }: Props) {
 
         <section className="space-y-1">
           <h3 className="text-xs font-medium text-muted-foreground">
-            Delivery outcome
+            Delivery result
           </h3>
           <p className="text-xs">{outcome}</p>
           <p className="text-xs text-muted-foreground">
-            Promise end {formatUtc(row.order_snapshot.promised_to_utc)} · Actual{' '}
+            Promised {formatUtc(row.order_snapshot.promised_to_utc)} · Actual{' '}
             {formatUtc(
               row.original_delivery_outcome?.original_completed_at_utc,
             )}
@@ -199,7 +196,7 @@ export function HistoryDetail({ row, onClose }: Props) {
 
         <section className="space-y-2">
           <h3 className="text-xs font-medium text-muted-foreground">
-            Timeline (discrete)
+            Timeline
           </h3>
           <ol className="space-y-2 border-l border-border pl-3">
             {timeline.map((ev) => (
@@ -221,7 +218,7 @@ export function HistoryDetail({ row, onClose }: Props) {
           to={`/cases/${row.customer_order.order_id}`}
           className="inline-flex h-8 items-center rounded-sm border border-border bg-background px-2.5 text-xs hover:bg-muted"
         >
-          Open current case
+          Open order
         </Link>
       </div>
     </aside>

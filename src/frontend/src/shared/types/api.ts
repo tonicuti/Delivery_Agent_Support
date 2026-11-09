@@ -114,6 +114,8 @@ export type SessionFlags = {
   force_stale_scores: boolean
   simulate_conflict_on_save: boolean
   simulate_risk_increase: boolean
+  /** Demo: arrived but returned → Very High urgent alert. */
+  simulate_delivery_return: boolean
 }
 
 export type HistoryRow = {

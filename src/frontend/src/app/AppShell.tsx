@@ -1,12 +1,13 @@
+import { UrgentAlerts } from '@/features/alerts/UrgentAlerts'
 import { Badge } from '@/shared/ui/badge'
 import { Input } from '@/shared/ui/input'
 import { Separator } from '@/shared/ui/separator'
 import {
   ClipboardList,
-  Database,
   History,
   Home,
   LineChart,
+  MessageSquare,
 } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
@@ -14,7 +15,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 const nav = [
   { to: '/dashboard', label: 'Orders needing attention', icon: ClipboardList },
   { to: '/history', label: 'History', icon: History },
-  { to: '/data-health', label: 'Data health', icon: Database },
+  { to: '/chat', label: 'Chat', icon: MessageSquare },
   { to: '/performance', label: 'Performance', icon: LineChart },
 ] as const
 
@@ -53,6 +54,8 @@ export function AppShell({ children }: Props) {
         Skip to main content
       </a>
 
+      <UrgentAlerts />
+
       <header className="border-b border-border bg-card">
         <div className="flex flex-wrap items-center gap-3 px-4 py-2">
           <Link
@@ -65,22 +68,22 @@ export function AppShell({ children }: Props) {
 
           <Badge
             variant="secondary"
-            title="Session SQLite copy — not live ERP/TMS"
+            title="Demo data — not connected to live systems"
           >
-            Demo · session copy
+            Demo
           </Badge>
 
           <Separator orientation="vertical" className="hidden h-6 sm:block" />
 
           <div
             className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"
-            title="Pilot scope is fixed in this demo — selects are not live filters"
+            title="This demo covers one location"
           >
             <span>
-              Scope:{' '}
-              <span className="text-foreground">Sweden · Stockholm (WH1)</span>
+              <span className="text-foreground">
+                Sweden · Stockholm warehouse
+              </span>
             </span>
-            <span className="text-[10px]">(demo fixed)</span>
           </div>
 
           <form onSubmit={onSearch} className="min-w-[12rem] flex-1">
@@ -88,8 +91,8 @@ export function AppShell({ children }: Props) {
               type="search"
               value={orderQuery}
               onChange={(e) => setOrderQuery(e.target.value)}
-              placeholder="Search order ID"
-              aria-label="Search order ID"
+              placeholder="Search order number"
+              aria-label="Search order number"
               className="h-8"
             />
           </form>
@@ -102,13 +105,10 @@ export function AppShell({ children }: Props) {
           className="flex w-56 shrink-0 flex-col border-r border-border bg-card"
         >
           <div className="flex flex-1 flex-col gap-1 p-2">
-            <Link
-              to="/"
-              className="mb-1 flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
+            <NavLink to="/" end className={navClass}>
               <Home className="size-4 shrink-0" aria-hidden />
               <span>Home & guide</span>
-            </Link>
+            </NavLink>
             {nav.map(({ to, label, icon: Icon }) => (
               <NavLink key={to} to={to} className={navClass}>
                 <Icon className="size-4 shrink-0" aria-hidden />
@@ -119,13 +119,13 @@ export function AppShell({ children }: Props) {
           <div className="border-t border-border p-2">
             <Link
               to="/demo-controls"
-              className="flex items-center justify-between gap-2 rounded-sm px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-              title="Force AI / stale / conflict scenarios (session only)"
+              className="flex flex-col gap-0.5 rounded-sm px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+              title="Turn on edge cases while presenting (presenter only)"
             >
               <span className="font-medium">Demo controls</span>
-              <Badge variant="outline" className="text-[10px]">
-                F8
-              </Badge>
+              <span className="text-[10px] leading-snug opacity-80">
+                Presenter switches
+              </span>
             </Link>
           </div>
         </nav>

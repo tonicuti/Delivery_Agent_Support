@@ -1,4 +1,5 @@
 import { Badge } from '@/shared/ui/badge'
+import { UI } from '@/shared/uiLabels'
 
 type Props = {
   activeCount: number
@@ -8,9 +9,6 @@ type Props = {
   visibleCount: number
 }
 
-/**
- * Compact strip for dispatcher scan — avoid duplicating Active/Visible/Acked.
- */
 export function WorklistSummary({
   activeCount,
   unacknowledgedCount,
@@ -22,29 +20,26 @@ export function WorklistSummary({
     <div
       className="flex flex-wrap items-center gap-2"
       role="status"
-      aria-label="Worklist summary for current scope"
+      aria-label="Summary for orders needing attention"
     >
       <Badge
         variant="secondary"
-        title={`${visibleCount} matching filters · ${activeCount} active in scope · ${acknowledgedActiveCount} acknowledged`}
+        title={`${visibleCount} matching filters · ${activeCount} open · ${acknowledgedActiveCount} marked as seen`}
       >
         Needs attention: {visibleCount}
       </Badge>
       {unacknowledgedCount > 0 ? (
-        <Badge
-          variant="outline"
-          title="simulated_notification not acknowledged"
-        >
-          Unacked: {unacknowledgedCount}
+        <Badge variant="outline" title="Alerts not marked as seen yet">
+          {UI.unread}: {unacknowledgedCount}
         </Badge>
       ) : null}
       {staleScoreCount > 0 ? (
         <Badge
           variant="outline"
           className="text-risk-medium"
-          title="risk_score older than stale threshold"
+          title="Last check is older than usual — double-check before you act"
         >
-          Stale scores: {staleScoreCount}
+          {UI.outdated}: {staleScoreCount}
         </Badge>
       ) : null}
     </div>

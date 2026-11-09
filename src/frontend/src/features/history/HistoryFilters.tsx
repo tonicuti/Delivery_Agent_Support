@@ -6,7 +6,6 @@ type Props = {
   value: HistoryFilterState
   onChange: (next: HistoryFilterState) => void
   onClear: () => void
-  modelOptions: string[]
   warehouseOptions: string[]
 }
 
@@ -19,7 +18,6 @@ export function HistoryFilters({
   value,
   onChange,
   onClear,
-  modelOptions,
   warehouseOptions,
 }: Props) {
   const set = <K extends keyof HistoryFilterState>(
@@ -35,7 +33,7 @@ export function HistoryFilters({
           className={controlClass}
           value={value.q}
           onChange={(e) => set('q', e.target.value)}
-          placeholder="Order / episode"
+          placeholder="Order number or alert"
           aria-label="Search history"
         />
       </label>
@@ -51,10 +49,10 @@ export function HistoryFilters({
           title={value.outcome || 'All'}
         >
           <option value="">All</option>
-          <option value="Awaiting delivery outcome">Awaiting outcome</option>
+          <option value="Awaiting delivery outcome">Waiting for result</option>
           <option value="On time">On time</option>
           <option value="Late">Late</option>
-          <option value="Outcome unknown">Outcome unknown</option>
+          <option value="Outcome unknown">Result unknown</option>
         </select>
       </label>
       <label className={fieldClass}>
@@ -76,14 +74,14 @@ export function HistoryFilters({
         </select>
       </label>
       <label className={fieldClass}>
-        Suggested action
+        Suggested step
         <select
           className={controlClass}
           value={value.action}
           onChange={(e) =>
             set('action', e.target.value as HistoryFilterState['action'])
           }
-          aria-label="Filter by suggested action"
+          aria-label="Filter by suggested step"
         >
           <option value="">All</option>
           <option value="none">None</option>
@@ -110,41 +108,24 @@ export function HistoryFilters({
           ))}
         </select>
       </label>
-      <label className={`${fieldClass} w-[13rem]`}>
-        Model
-        <select
-          className={controlClass}
-          value={value.model}
-          onChange={(e) => set('model', e.target.value)}
-          aria-label="Filter by model version"
-          title={value.model || 'All'}
-        >
-          <option value="">All</option>
-          {modelOptions.map((m) => (
-            <option key={m} value={m}>
-              {m.length > 36 ? `${m.slice(0, 18)}…${m.slice(-10)}` : m}
-            </option>
-          ))}
-        </select>
-      </label>
       <label className={fieldClass}>
-        Opened from
+        Alert from
         <input
           type="date"
           className={controlClass}
           value={value.dateFrom}
           onChange={(e) => set('dateFrom', e.target.value)}
-          aria-label="Opened from date"
+          aria-label="Alert from date"
         />
       </label>
       <label className={fieldClass}>
-        Opened to
+        Alert to
         <input
           type="date"
           className={controlClass}
           value={value.dateTo}
           onChange={(e) => set('dateTo', e.target.value)}
-          aria-label="Opened to date"
+          aria-label="Alert to date"
         />
       </label>
       <div className="flex h-8 items-center pb-0">

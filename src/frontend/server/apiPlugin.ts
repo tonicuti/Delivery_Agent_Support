@@ -23,6 +23,7 @@ import {
   applyFlagsToCase,
   applyFlagsToWorklist,
 } from './sessionFlags'
+import { chatEvents, validateChatMessages } from './chatAnswer'
 
 async function readJson(req: import('node:http').IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
@@ -127,6 +128,40 @@ export function deliveryDbApiPlugin(): Plugin {
             return send(res, 200, queryHistory(db))
           }
 
+          if (method === 'POST' && pathname === '/api/chat/stream') {
+            const body = (await readJson(req)) as {
+              messages?: unknown
+              order_id?: unknown
+            }
+            let messages
+            try {
+              messages = validateChatMessages(body.messages)
+            } catch (err) {
+              return send(res, 400, {
+                error: err instanceof Error ? err.message : 'Invalid messages',
+              })
+            }
+            const orderId =
+              body.order_id == null || body.order_id === ''
+                ? null
+                : Number(body.order_id)
+            if (orderId != null && (!Number.isInteger(orderId) || orderId <= 0)) {
+              return send(res, 400, { error: 'order_id must be a positive integer' })
+            }
+
+            // Read-only fact answers; chat history stays in the browser only.
+            const db = openDb(true)
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
+            res.setHeader('Cache-Control', 'no-cache, no-transform')
+            res.setHeader('Connection', 'keep-alive')
+            for (const event of chatEvents(db, messages, orderId)) {
+              res.write(`data: ${JSON.stringify(event)}\n\n`)
+            }
+            res.end()
+            return
+          }
+
           if (method === 'GET' && pathname === '/api/data-health') {
             const db = openDb(true)
             const flags = readSessionFlags()
@@ -156,6 +191,7 @@ export function deliveryDbApiPlugin(): Plugin {
               'force_stale_scores',
               'simulate_conflict_on_save',
               'simulate_risk_increase',
+              'simulate_delivery_return',
             ] as const) {
               if (typeof body[key] === 'boolean') patch[key] = body[key]
             }

@@ -22,13 +22,13 @@ export function HistoryTable({ rows, selectedEpisodeId, onSelect }: Props) {
       <table className="w-full min-w-[64rem] text-left text-sm">
         <thead className="border-b border-border bg-muted/60 text-xs text-muted-foreground">
           <tr>
-            <th className="px-3 py-2 font-medium">Opened</th>
+            <th className="px-3 py-2 font-medium">Alert opened</th>
             <th className="px-3 py-2 font-medium">Order</th>
-            <th className="px-3 py-2 font-medium">Risk</th>
-            <th className="px-3 py-2 font-medium">Recommendation</th>
+            <th className="px-3 py-2 font-medium">Chance of delay</th>
+            <th className="px-3 py-2 font-medium">Suggestion</th>
             <th className="px-3 py-2 font-medium">Decision</th>
-            <th className="px-3 py-2 font-medium">Outcome</th>
-            <th className="px-3 py-2 font-medium">Flags</th>
+            <th className="px-3 py-2 font-medium">Delivery result</th>
+            <th className="px-3 py-2 font-medium">Action taken</th>
           </tr>
         </thead>
         <tbody>
@@ -58,13 +58,15 @@ export function HistoryTable({ rows, selectedEpisodeId, onSelect }: Props) {
                 <td className="px-3 py-2">
                   <div
                     className="font-medium"
-                    title={`episode ${ep} · p_late ${row.risk_score.p_late.toFixed(3)}`}
+                    title={`Alert ${ep}`}
                   >
                     {row.customer_order.external_order_id}
                   </div>
                 </td>
                 <td className="px-3 py-2">
-                  <span title={`p_late ${row.risk_score.p_late.toFixed(3)}`}>
+                  <span
+                    title={`${Math.round(row.risk_score.p_late * 100)}% chance of delay`}
+                  >
                     <RiskBadge risk={row.risk_band} />
                   </span>
                 </td>
@@ -91,7 +93,7 @@ export function HistoryTable({ rows, selectedEpisodeId, onSelect }: Props) {
                 </td>
                 <td className="px-3 py-2">
                   {intervened(row) ? (
-                    <Badge variant="secondary">Intervened</Badge>
+                    <Badge variant="secondary">Action taken</Badge>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}

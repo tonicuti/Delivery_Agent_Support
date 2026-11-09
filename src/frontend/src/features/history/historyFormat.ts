@@ -1,6 +1,7 @@
 import type { HistoryRow, PlaybookActionId } from '@/shared/types'
 import { parseDecisionNotes } from '@/features/decision/decisionNotes'
 import { playbookLabel } from '@/features/decision/playbooks'
+import { validationStatusLabel } from '@/shared/uiLabels'
 
 export type OutcomeLabel =
   | 'Awaiting delivery outcome'
@@ -101,19 +102,19 @@ export function intervened(row: HistoryRow): boolean {
 
 export function episodeCloseReason(row: HistoryRow): string {
   if (row.risk_episode.closed_at_utc) {
-    return `Episode closed at ${formatUtc(row.risk_episode.closed_at_utc)}`
+    return `Alert closed at ${formatUtc(row.risk_episode.closed_at_utc)}`
   }
   if (row.planner_feedback) {
-    return 'Decision recorded (worklist may be closed; episode row still open in DB)'
+    return 'Decision recorded (alert may no longer show on Orders needing attention)'
   }
-  return 'Episode still open'
+  return 'Alert still open'
 }
 
 export function recommendedAction(row: HistoryRow): string {
   const id = row.agent_recommendation?.action_id ?? null
   if (!id) {
     return row.agent_recommendation
-      ? `None (${row.agent_recommendation.validation_status})`
+      ? `No suggestion (${validationStatusLabel(row.agent_recommendation.validation_status)})`
       : '—'
   }
   return playbookLabel(id)
@@ -136,22 +137,22 @@ export function buildHistoryTimeline(row: HistoryRow): HistoryTimelineEvent[] {
     {
       id: 'open',
       at_utc: row.risk_episode.opened_at_utc,
-      label: 'Episode opened',
-      detail: `opening_score_id ${row.risk_episode.opening_score_id}`,
+      label: 'Alert opened',
+      detail: 'Order flagged for attention',
     },
     {
       id: 'score',
       at_utc: row.risk_score.scored_at_utc,
-      label: 'Score at alert (opening)',
-      detail: `p_late ${row.risk_score.p_late.toFixed(3)} · ${row.risk_band} (model probability)`,
+      label: 'Chance of delay at alert',
+      detail: `${Math.round(row.risk_score.p_late * 100)}% chance of delay`,
     },
   ]
   if (row.agent_recommendation) {
     events.push({
       id: 'rec',
       at_utc: row.agent_recommendation.created_at_utc,
-      label: 'Recommendation',
-      detail: `${recommendedAction(row)} · ${row.agent_recommendation.validation_status}`,
+      label: 'Suggestion',
+      detail: `${recommendedAction(row)} · ${validationStatusLabel(row.agent_recommendation.validation_status)}`,
     })
   }
   if (row.planner_feedback) {
@@ -167,7 +168,7 @@ export function buildHistoryTimeline(row: HistoryRow): HistoryTimelineEvent[] {
     events.push({
       id: 'close',
       at_utc: row.risk_episode.closed_at_utc,
-      label: 'Episode closed',
+      label: 'Alert closed',
       detail: episodeCloseReason(row),
     })
   }
@@ -176,7 +177,7 @@ export function buildHistoryTimeline(row: HistoryRow): HistoryTimelineEvent[] {
     events.push({
       id: 'delivered',
       at_utc: od.original_completed_at_utc,
-      label: 'Original delivery completed',
+      label: 'Delivery completed',
       detail: outcomeLabel(row),
     })
   }
