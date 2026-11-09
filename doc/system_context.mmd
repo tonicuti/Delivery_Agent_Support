@@ -1,0 +1,45 @@
+flowchart LR
+    %% System context for the Swedish Delivery Risk Agent MVP.
+    %% People and providers are outside; the four central nodes are inside.
+
+    subgraph operational["People and operational sources — outside"]
+        Retailer["Retailer / order staff"]
+        Operations["Warehouse / carrier staff"]
+        Planner["Regional planning team"]
+        Representative["Customer representative"]
+        Management["Assigned order management team"]
+    end
+
+    subgraph system["System boundary — Delivery Risk Agent MVP"]
+        Evidence["Evidence intake and SQLite records"]
+        Risk["Time-safe features, LightGBM scoring and Agent"]
+        Planning["Model queue: unhandled High by score, handled last"]
+        Replacement["Same order: claim, redelivery task and urgent override"]
+        Evidence -->|"eligible original orders; new time-safe evidence"| Risk
+        Risk -->|"score and band; High recommendation; new concern reopens review"| Planning
+        Evidence -->|"same order: discrepancy, replacement ETA and accepted units"| Replacement
+        Replacement -->|"approval stops scoring; urgent High until all units accepted"| Evidence
+    end
+
+    subgraph providers["External information providers — outside"]
+        Weather["Weather API"]
+        Travel["Travel-time API"]
+        Holidays["Holiday API"]
+    end
+
+    Retailer -->|"orders, promises, sites and team assignments"| Evidence
+    Operations -->|"stock, warehouse, shipment, ETA, handover and acceptance events"| Evidence
+    Planner -->|"review, decide action, mark risk episode handled"| Planning
+    Planning -->|"unhandled High first; handled last; evidence and recommendations"| Planner
+    Representative -->|"record inspection and approve replacement quantities"| Replacement
+    Replacement -->|"claim and order evidence"| Representative
+    Replacement -->|"urgent task after authorization; redelivery issue flag"| Management
+    Weather -->|"site forecasts with observation times"| Evidence
+    Travel -->|"travel times for shipment stops"| Evidence
+    Holidays -->|"regional holiday observations"| Evidence
+
+    classDef outside fill:#f5f7fa,stroke:#64748b,color:#111827
+    classDef inside fill:#e8f1ff,stroke:#2563eb,color:#111827
+    class Retailer,Operations,Planner,Representative,Management,Weather,Travel,Holidays outside
+    class Evidence,Risk,Planning,Replacement inside
+    style system fill:#eff6ff,stroke:#1d4ed8,stroke-width:2px
