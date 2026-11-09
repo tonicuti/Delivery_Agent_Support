@@ -1,0 +1,82 @@
+# Planner console stack: fe (nginx + SPA) -> be (API + scheduler + SQLite) -> ollama (Qwen).
+#
+#   docker compose up -d --build      # then open http://localhost:8080
+#   docker compose logs -f be
+#   docker compose down               # keeps data; add -v to delete the DB and the model
+#
+# The "database" is the SQLite file in the db-data volume (SQLite has no server process).
+# The be entrypoint creates the schema when the volume is empty and applies migrations
+# on every start, so there is no separate migration container.
+#
+# Use an Ollama already running on the host instead of the container (e.g. to reuse its GPU
+# and downloaded model):
+#   OLLAMA_ENDPOINT=http://host.docker.internal:11434/api/generate docker compose up -d --scale ollama=0
+
+name: delivery-agent
+
+services:
+  fe:
+    build: ./frontend
+    image: delivery-agent-fe:latest
+    ports:
+      - "${FE_PORT:-8080}:80"
+    depends_on:
+      be:
+        condition: service_healthy
+    restart: unless-stopped
+
+  be:
+    build: .
+    image: delivery-agent-be:latest
+    environment:
+      DELIVERY_DB_PATH: /data/delivery_db.db
+      OLLAMA_ENDPOINT: ${OLLAMA_ENDPOINT:-http://ollama:11434/api/generate}
+      # Applies only when the volume has no database yet: loads the synthetic demo orders
+      # (1001-1003) so the console has something to show. Set to false for a real database.
+      SEED_DEMO: ${SEED_DEMO:-true}
+      # off | offline | live. Can also be switched at runtime from the System page.
+      SCHEDULER_MODE: ${SCHEDULER_MODE:-off}
+    volumes:
+      - db-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    # Start the server, wait until it answers, download the model the code requires once,
+    # then keep serving. The model lives in the ollama-data volume.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ollama serve &
+        server=$$!
+        until ollama list >/dev/null 2>&1; do sleep 1; done
+        ollama pull qwen3:1.7b
+        wait $$server
+    volumes:
+      - ollama-data:/root/.ollama
+    # Remove this block on machines without an NVIDIA GPU (inference then runs on CPU).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q 'qwen3:1.7b'"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  ollama-data:

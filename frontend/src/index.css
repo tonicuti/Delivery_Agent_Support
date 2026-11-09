@@ -1,0 +1,165 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+/* Self-hosted: no request to a font CDN (the proposal asks for minimal data leaving the EU).
+   Be Vietnam Pro: friendly geometric sans with full Vietnamese and Nordic coverage, close in spirit to Grab's own typeface. */
+@import "@fontsource/be-vietnam-pro/400.css";
+@import "@fontsource/be-vietnam-pro/500.css";
+@import "@fontsource/be-vietnam-pro/600.css";
+@import "@fontsource/be-vietnam-pro/700.css";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Be Vietnam Pro', Roboto, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono Variable', ui-monospace, Consolas, monospace;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-muted: var(--sidebar-muted);
+    --color-brand: var(--brand);
+    --color-brand-soft: var(--brand-soft);
+    --color-sidebar: var(--sidebar);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    /* Status colours: Carbon's severity palette. Always shown with an icon and a label. */
+    --color-risk-high: var(--risk-high);
+    --color-risk-high-fg: var(--risk-high-fg);
+    --color-risk-high-bg: var(--risk-high-bg);
+    --color-risk-med: var(--risk-med);
+    --color-risk-med-fg: var(--risk-med-fg);
+    --color-risk-med-bg: var(--risk-med-bg);
+    --color-risk-low: var(--risk-low);
+    --color-risk-low-fg: var(--risk-low-fg);
+    --color-risk-low-bg: var(--risk-low-bg);
+    --color-info: var(--info);
+    --color-info-fg: var(--info-fg);
+    --color-info-bg: var(--info-bg);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    /* Grab palette, sampled from grab.com: green #00B14F, dark #008E3F / #006A2F, tint #CCEFDC, orange #F38522, cream #FDF4D9. */
+    --brand: #00b14f;            /* logo, active indicators, charts: decorative, not for text */
+    --brand-soft: #e5f6ec;
+    --background: #f4f6f5;
+    --foreground: #1c211e;
+    --card: #ffffff;
+    --card-foreground: #1c211e;
+    --popover: #ffffff;
+    --popover-foreground: #1c211e;
+    --primary: #007f38;          /* white text on this is 5.1:1; #00B14F alone is only 2.9:1 */
+    --primary-foreground: #ffffff;
+    --secondary: #e9efec;
+    --secondary-foreground: #1c211e;
+    --muted: #eef2f0;
+    --muted-foreground: #4b4b4b;
+    --accent: #e5f6ec;
+    --accent-foreground: #006a2f;
+    --destructive: #d92d20;
+    --border: #dfe5e2;
+    --input: #c5cfca;
+    --ring: #008e3f;
+    --radius: 0.75rem;
+
+    --risk-high: #d92d20;  --risk-high-fg: #b42318;  --risk-high-bg: #fef0ee;
+    --risk-med: #f38522;   --risk-med-fg: #8f4b00;   --risk-med-bg: #fff3e3;
+    --risk-low: #00b14f;   --risk-low-fg: #006a2f;   --risk-low-bg: #e5f6ec;
+    --info: #2f6fed;       --info-fg: #1d4fb8;       --info-bg: #e8f0fe;
+
+    --sidebar: #ffffff;
+    --sidebar-foreground: #1c211e;
+    --sidebar-muted: #5a6560;
+    --sidebar-primary: #00b14f;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e5f6ec;
+    --sidebar-accent-foreground: #006a2f;
+    --sidebar-border: #e3e9e6;
+    --sidebar-ring: #008e3f;
+}
+
+.dark {
+    --brand: #00b14f;
+    --brand-soft: #123524;
+    --background: #0e1411;
+    --foreground: #e9f0ec;
+    --card: #161f1a;
+    --card-foreground: #e9f0ec;
+    --popover: #161f1a;
+    --popover-foreground: #e9f0ec;
+    --primary: #00b14f;
+    --primary-foreground: #04170c;
+    --secondary: #1d2923;
+    --secondary-foreground: #e9f0ec;
+    --muted: #1a241f;
+    --muted-foreground: #a3b2aa;
+    --accent: #123524;
+    --accent-foreground: #7be0a6;
+    --destructive: #f4695e;
+    --border: #28362e;
+    --input: #38483f;
+    --ring: #3fd17f;
+
+    --risk-high: #f4695e;  --risk-high-fg: #ffb4ac;  --risk-high-bg: #3b1714;
+    --risk-med: #f38522;   --risk-med-fg: #ffc48a;   --risk-med-bg: #3a2512;
+    --risk-low: #3fd17f;   --risk-low-fg: #7be0a6;   --risk-low-bg: #0f2b1c;
+    --info: #7ba5ff;       --info-fg: #adc6ff;       --info-bg: #14264a;
+
+    --sidebar: #121a15;
+    --sidebar-foreground: #e9f0ec;
+    --sidebar-muted: #9fb0a7;
+    --sidebar-accent: #123524;
+    --sidebar-accent-foreground: #7be0a6;
+    --sidebar-border: #24322a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Digits line up in tables and counters. */
+  .tabular { font-variant-numeric: tabular-nums; }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"] {
+    cursor: pointer;
+  }
+  main:focus, main:focus-visible { outline: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from backend.db import connect
 from backend.external.context import get_context, live_enrich
 from backend.external.weather import classify_weather
+from backend.features import build_features
 from backend.migrations import migrate
 from test_features import fixture
 
@@ -50,11 +51,13 @@ class ExternalContextTests(unittest.TestCase):
                 self.assertEqual(result["holiday_status"], "fresh")
                 self.assertEqual(result["holiday_flag"], 0)
                 self.assertTrue(result["country_assumed"])
+                self.assertEqual(build_features(db, 1002, AT).values["weather_severity"], 0)
                 past = get_context(db, 1002, AT - timedelta(minutes=1))
                 self.assertEqual(past["weather_status"], "missing")
                 stale = get_context(db, 1002, AT + timedelta(minutes=31))
                 self.assertEqual(stale["weather_status"], "stale")
                 self.assertEqual(stale["holiday_status"], "fresh")
+                self.assertIsNone(build_features(db, 1002, AT + timedelta(minutes=31)).values["weather_severity"])
 
     def test_live_fetch_advances_decision_time_to_evidence_receipt(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -75,6 +78,8 @@ class ExternalContextTests(unittest.TestCase):
                 self.assertEqual(result["effective_decision_time"], "2026-11-06T09:01:00Z")
                 self.assertEqual(result["weather"]["severity"], 2)
                 self.assertEqual(get_context(db, 1002, AT)["weather_status"], "missing")
+                self.assertIsNone(build_features(db, 1002, AT).values["weather_severity"])
+                self.assertEqual(build_features(db, 1002, received).values["weather_severity"], 2)
 
     def test_api_failure_is_missing_and_recorded(self):
         with tempfile.TemporaryDirectory() as folder:

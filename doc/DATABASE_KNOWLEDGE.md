@@ -54,7 +54,7 @@ The database stores source facts before producing `order_snapshot`. Staff or the
 | `region` | `planning_region.name` through the order's delivery site. |
 | `travel_hours` | `travel_observation.travel_seconds / 3600` for the outstanding original shipment with the latest planned stop ETA. |
 | `holiday_flag` | Latest visible `holiday_observation` for the region and the promise end's local date, if still fresh under the feature builder's seven-day rule. |
-| `weather_severity` | Intended to be derived from `weather_observation`. The current feature builder leaves it unknown because the mapping from forecast values to 0, 1, and 2 has not been validated against the training data. |
+| `weather_severity` | Derived from a fresh, validated `weather_observation` for the site's promised delivery hour using the versioned `demo-weather-v1` precipitation and gust thresholds. Unknown when no suitable observation exists. This demo mapping has not been calibrated to the saved model's synthetic training labels. |
 
 The saved LightGBM pipeline expects exactly these 17 features, in the order defined by `src/backend/features.py`. `src/backend/predictor.py` checks feature names and types, then returns `p_late`. A missing value is represented as `None` in Python and `NULL` in SQLite. The model pipeline imputes missing values according to its saved preprocessing steps.
 
@@ -72,7 +72,7 @@ The current schema does not version product measurements, shipment assignment, o
 
 `weather_observation` stores provider, forecast run time, valid time, fetch time, and raw wind, precipitation, and thunderstorm fields for a site. `travel_observation` stores provider, requested departure, fetched time, and travel seconds for a shipment stop. `holiday_observation` stores provider, region, local date, holiday flag, and fetched time. Collectors should preserve source identity and time rather than replacing the latest row.
 
-The current feature builder reads travel and holiday observations. Weather values are stored but are not yet converted to the model's synthetic `weather_severity` categories. The definition of severity and the training data must be aligned before this feature is enabled for scoring. An unavailable or stale external observation remains unknown rather than being guessed.
+The feature builder reads travel and holiday observations and classifies fresh weather observations into the model's `weather_severity` input. The weather thresholds are for the mock deployment workflow; the saved model was trained with synthetic weather categories that were not generated from those thresholds. Retrain and validate the model with consistently classified historical weather before treating its weather effect as calibrated. An unavailable or stale external observation remains unknown rather than being guessed.
 
 ## Delivery, claims, and replacement
 

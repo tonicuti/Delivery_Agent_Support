@@ -53,6 +53,8 @@ def get_context(db: Connection, order_id: int, decision_time: datetime) -> dict:
     result = {"weather_status": "missing", "holiday_status": "missing",
               "holiday_flag": None, "weather": None, "evidence_ids": [],
               "country_assumed": details["country_assumed"]}
+    target_hour = details["target"].astimezone(timezone.utc).replace(
+        minute=0, second=0, microsecond=0)
     for kind, ttl in (("weather", WEATHER_TTL), ("holiday", HOLIDAY_TTL)):
         scope_json = _scope_json(kind, details)
         rows = db.execute("""
@@ -62,7 +64,7 @@ def get_context(db: Connection, order_id: int, decision_time: datetime) -> dict:
         """, (kind, scope_json, at)).fetchall()
         for row in rows:
             if kind == "weather" and not (
-                    row["coverage_start_utc"] <= _utc_text(details["target"]) <= row["coverage_end_utc"]):
+                    row["coverage_start_utc"] <= _utc_text(target_hour) <= row["coverage_end_utc"]):
                 continue
             age = decision_time.astimezone(timezone.utc) - _parse_utc(row["fetched_at_utc"])
             status = "fresh" if age <= ttl else "stale"
