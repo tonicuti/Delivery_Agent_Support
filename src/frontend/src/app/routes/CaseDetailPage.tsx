@@ -15,6 +15,8 @@ import {
 } from '@/features/case-detail'
 import { DecisionModal, DecisionRecord } from '@/features/decision'
 import { CustomerMessageDraft } from '@/features/customer-draft'
+import { CaseDataHealthBanners } from '@/features/data-health'
+import { decisionBlockedReason } from '@/features/case-detail/caseFormat'
 
 const WORKLIST_SEARCH_KEY = 'worklist-search'
 
@@ -24,6 +26,7 @@ type FeedbackInput = {
   notes: string
   recorded_by: string
   recorded_at_utc: string
+  expected_feedback_id?: string | null
 }
 
 export function CaseDetailPage() {
@@ -41,7 +44,7 @@ export function CaseDetailPage() {
       typeof sessionStorage !== 'undefined'
         ? sessionStorage.getItem(WORKLIST_SEARCH_KEY)
         : null
-    return saved ? `/?${saved}` : '/'
+    return saved ? `/dashboard?${saved}` : '/dashboard'
   }, [])
 
   const load = useCallback(async () => {
@@ -89,6 +92,10 @@ export function CaseDetailPage() {
   }
 
   const onDecide = () => {
+    if (detail && decisionBlockedReason(detail)) {
+      setToast(decisionBlockedReason(detail))
+      return
+    }
     setModalOpen(true)
   }
 
@@ -136,8 +143,10 @@ export function CaseDetailPage() {
         <>
           <CaseHeader detail={detail} backTo={backTo} onDecide={onDecide} />
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="min-w-0 space-y-6">
+          <CaseDataHealthBanners detail={detail} />
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="min-w-0 space-y-4">
               <CaseReasons reasons={reasons} />
               <CaseOrderLines detail={detail} />
               <CaseWarehouseTimeline detail={detail} />
@@ -148,7 +157,7 @@ export function CaseDetailPage() {
               />
               <CaseRiskHistory events={history} />
             </div>
-            <aside className="min-w-0 space-y-4 xl:sticky xl:top-28 xl:self-start">
+            <aside className="min-w-0 space-y-3 xl:sticky xl:top-24 xl:self-start">
               <CaseRecommendation detail={detail} onDecide={onDecide} />
               {detail.planner_feedback ? (
                 <DecisionRecord
@@ -166,6 +175,10 @@ export function CaseDetailPage() {
             detail={detail}
             open={modalOpen}
             onClose={() => setModalOpen(false)}
+            onReload={async () => {
+              await load()
+              setToast('Case reloaded. Review evidence, then save again if needed.')
+            }}
             onSubmit={onDecisionSaved}
           />
         </>

@@ -96,28 +96,36 @@ let cached: DatabaseSync | null = null
 let cachedPath: string | null = null
 
 /**
- * Open the SESSION copy only.
- * readonly=true still hits the copy (never the team source).
+ * Open the SESSION copy only (never the team source).
+ *
+ * Always opens writable and reuses one handle. Re-opening readonly→write on
+ * every POST caused Windows SQLITE_IOERR ("disk I/O error") under HMR /
+ * concurrent fetches.
+ *
+ * `readonly` is kept for call-site compatibility but ignored for open mode.
  */
-export function openDb(readonly = false): DatabaseSync {
+export function openDb(_readonly = false): DatabaseSync {
   ensureSessionDb()
   const session = resolveSessionDbPath()
 
   if (cached && cachedPath === session) {
-    // If we previously opened readonly and now need write, reopen.
-    if (!readonly) {
-      // DatabaseSync has no "isReadOnly" flag exposed reliably — reopen writable.
-      closeCached()
-    } else {
-      return cached
-    }
-  } else if (cached) {
-    closeCached()
+    return cached
   }
+  if (cached) closeCached()
 
-  cached = new DatabaseSync(session, { readOnly: readonly })
+  cached = new DatabaseSync(session)
   cachedPath = session
+  try {
+    cached.exec('PRAGMA busy_timeout = 5000;')
+  } catch {
+    /* older builds may not allow exec — ignore */
+  }
   return cached
+}
+
+/** Drop cached handle after I/O / lock failures so the next call reopens. */
+export function invalidateDbCache(): void {
+  closeCached()
 }
 
 export function dbPathsForLog(): { source: string; session: string } {
@@ -130,4 +138,39 @@ export function dbPathsForLog(): { source: string; session: string } {
 /** @deprecated use dbPathsForLog().session */
 export function dbPathForLog(): string {
   return resolveSessionDbPath()
+}
+
+import {
+  DEFAULT_SESSION_FLAGS,
+  normalizeSessionFlags,
+  type SessionFlags,
+} from './sessionFlags'
+
+export type { SessionFlags }
+
+function sessionFlagsPath(): string {
+  return path.resolve(path.dirname(resolveSessionDbPath()), 'session_flags.json')
+}
+
+/** Demo ops flags for F7/F8 — not a schema table. */
+export function readSessionFlags(): SessionFlags {
+  const p = sessionFlagsPath()
+  try {
+    if (fs.existsSync(p)) {
+      const raw = JSON.parse(fs.readFileSync(p, 'utf8')) as Partial<SessionFlags>
+      return normalizeSessionFlags(raw)
+    }
+  } catch {
+    /* default */
+  }
+  return { ...DEFAULT_SESSION_FLAGS }
+}
+
+export function writeSessionFlags(
+  patch: Partial<SessionFlags>,
+): SessionFlags {
+  const next = normalizeSessionFlags({ ...readSessionFlags(), ...patch })
+  fs.mkdirSync(path.dirname(sessionFlagsPath()), { recursive: true })
+  fs.writeFileSync(sessionFlagsPath(), JSON.stringify(next, null, 2), 'utf8')
+  return next
 }

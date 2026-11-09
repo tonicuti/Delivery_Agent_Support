@@ -10,8 +10,10 @@ import {
   type WorklistResponse,
   type WorklistRow,
 } from '../src/shared/types'
+import { computeRiskIncreased } from './riskIncrease'
 
 export { queryCase } from './queryCase'
+export { computeRiskIncreased } from './riskIncrease'
 
 type Row = Record<string, unknown>
 
@@ -34,6 +36,8 @@ function minutesSince(iso: string, now = new Date()): number {
 
 function mapWorklistRow(r: Row): WorklistRow {
   const p_late = Number(r.p_late)
+  const opening =
+    r.opening_p_late == null ? null : Number(r.opening_p_late)
   return {
     worklist_item: {
       order_id: Number(r.order_id),
@@ -59,6 +63,7 @@ function mapWorklistRow(r: Row): WorklistRow {
       reason_codes_json: String(r.reason_codes_json ?? '[]'),
     },
     risk_band: risk_band(p_late),
+    risk_increased: computeRiskIncreased(p_late, opening),
     customer_order: {
       order_id: Number(r.order_id),
       source_system: String(r.source_system),
@@ -160,6 +165,7 @@ SELECT
   e.opened_at_utc, e.closed_at_utc, e.opening_score_id,
   rs.score_id, rs.snapshot_id, rs.model_version, rs.scored_at_utc,
   rs.p_late, rs.reason_codes_json,
+  rs_open.p_late AS opening_p_late,
   o.source_system, o.external_order_id, o.customer_id, o.category_id,
   o.site_id, o.management_team_id, o.created_at_utc, o.cancelled_at_utc,
   cu.source_system AS customer_source_system,
@@ -185,6 +191,7 @@ SELECT
 FROM worklist_item w
 JOIN risk_episode e ON e.episode_id = w.episode_id
 JOIN risk_score rs ON rs.score_id = w.latest_score_id
+LEFT JOIN risk_score rs_open ON rs_open.score_id = e.opening_score_id
 JOIN order_snapshot os ON os.snapshot_id = rs.snapshot_id
 JOIN customer_order o ON o.order_id = w.order_id
 JOIN customer cu ON cu.customer_id = o.customer_id
@@ -417,22 +424,85 @@ export function queryHistory(db: DatabaseSync): HistoryRow[] {
   return out
 }
 
-export function queryDataHealth(db: DatabaseSync): DataHealthSnapshot {
+export function queryDataHealth(
+  db: DatabaseSync,
+  opts?: { agent_enabled?: boolean },
+): DataHealthSnapshot {
+  const snap = get(db, `SELECT MAX(as_of_utc) AS t FROM order_snapshot`)
+  const stock = get(db, `SELECT MAX(recorded_at_utc) AS t FROM stock_event`)
   const wh = get(db, `SELECT MAX(recorded_at_utc) AS t FROM warehouse_event`)
   const eta = get(db, `SELECT MAX(recorded_at_utc) AS t FROM eta_update`)
-  const score = get(
+  const weather = get(db, `SELECT MAX(fetched_at_utc) AS t FROM weather_observation`)
+  const holiday = get(db, `SELECT MAX(fetched_at_utc) AS t FROM holiday_observation`)
+  const travel = get(db, `SELECT MAX(fetched_at_utc) AS t FROM travel_observation`)
+  const score = get(db, `SELECT MAX(scored_at_utc) AS t FROM risk_score`)
+  const latestModel = get(
     db,
-    `SELECT MAX(scored_at_utc) AS t, model_version FROM risk_score`,
+    `SELECT model_version FROM risk_score ORDER BY scored_at_utc DESC LIMIT 1`,
   )
   const rec = get(db, `SELECT MAX(created_at_utc) AS t FROM agent_recommendation`)
+
+  const staleCutoff = new Date(
+    Date.now() - DATA_STALE_MINUTES * 60_000,
+  ).toISOString()
+  const staleScores = all(
+    db,
+    `SELECT w.order_id
+     FROM worklist_item w
+     JOIN risk_score rs ON rs.score_id = w.latest_score_id
+     WHERE w.status = 'active' AND rs.scored_at_utc < ?`,
+    [staleCutoff],
+  )
+  const missingPromise = all(
+    db,
+    `SELECT w.order_id
+     FROM worklist_item w
+     JOIN risk_score rs ON rs.score_id = w.latest_score_id
+     JOIN order_snapshot os ON os.snapshot_id = rs.snapshot_id
+     LEFT JOIN promise_version pv
+       ON pv.order_id = w.order_id AND pv.version_no = os.promise_version_no
+     WHERE w.status = 'active' AND pv.order_id IS NULL`,
+  )
+  const failedRuns = all(
+    db,
+    `SELECT run_id FROM agent_run WHERE status = 'failed'`,
+  )
+  const unavailableRecs = all(
+    db,
+    `SELECT recommendation_id FROM agent_recommendation WHERE validation_status = 'unavailable'`,
+  )
+  const invalidRecs = all(
+    db,
+    `SELECT recommendation_id FROM agent_recommendation WHERE validation_status = 'invalid'`,
+  )
+
   return {
+    order_snapshot_latest_utc: (snap?.t as string | null) ?? null,
+    stock_event_latest_utc: (stock?.t as string | null) ?? null,
     warehouse_event_latest_utc: (wh?.t as string | null) ?? null,
     eta_update_latest_utc: (eta?.t as string | null) ?? null,
+    weather_latest_utc: (weather?.t as string | null) ?? null,
+    holiday_latest_utc: (holiday?.t as string | null) ?? null,
+    travel_latest_utc: (travel?.t as string | null) ?? null,
     risk_score_latest_utc: (score?.t as string | null) ?? null,
     agent_recommendation_latest_utc: (rec?.t as string | null) ?? null,
-    model_version: (score?.model_version as string | null) ?? null,
-    agent_enabled: true,
+    model_version: (latestModel?.model_version as string | null) ?? null,
+    agent_enabled: opts?.agent_enabled !== false,
     stale_after_minutes: DATA_STALE_MINUTES,
+    stale_score_count: staleScores.length,
+    missing_promise_count: missingPromise.length,
+    agent_run_failed_count: failedRuns.length,
+    recommendation_unavailable_count: unavailableRecs.length,
+    recommendation_invalid_count: invalidRecs.length,
+    generated_at_utc: new Date().toISOString(),
+  }
+}
+
+export class DecisionConflictError extends Error {
+  readonly status = 409
+  constructor(message: string) {
+    super(message)
+    this.name = 'DecisionConflictError'
   }
 }
 
@@ -444,8 +514,39 @@ export function writePlannerFeedback(
     notes: string | null
     recorded_by: string
     recorded_at_utc: string
+    /** F8: feedback known at modal open; mismatch blocks silent overwrite. */
+    expected_feedback_id?: string | null
+    /** When true, reject once as if another reviewer saved first. */
+    simulate_conflict?: boolean
   },
 ) {
+  const latest = get(
+    db,
+    `SELECT pf.feedback_id
+     FROM planner_feedback pf
+     WHERE pf.recommendation_id = ?
+     ORDER BY pf.recorded_at_utc DESC
+     LIMIT 1`,
+    [input.recommendation_id],
+  )
+  const latestId = (latest?.feedback_id as string | undefined) ?? null
+  const expected =
+    input.expected_feedback_id === undefined
+      ? latestId
+      : input.expected_feedback_id
+
+  if (input.simulate_conflict) {
+    throw new DecisionConflictError(
+      'A newer decision exists (demo concurrent review). Reload the case, review changes, then save again. Form was not overwritten.',
+    )
+  }
+
+  if (expected !== latestId) {
+    throw new DecisionConflictError(
+      'A newer decision already exists for this recommendation. Reload the case — your form was kept and not overwritten.',
+    )
+  }
+
   const feedback_id = randomUUID()
   db.prepare(
     `INSERT INTO planner_feedback(

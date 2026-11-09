@@ -8,6 +8,9 @@ type Props = {
   visibleCount: number
 }
 
+/**
+ * Compact strip for dispatcher scan — avoid duplicating Active/Visible/Acked.
+ */
 export function WorklistSummary({
   activeCount,
   unacknowledgedCount,
@@ -17,23 +20,33 @@ export function WorklistSummary({
 }: Props) {
   return (
     <div
-      className="flex flex-wrap gap-2"
+      className="flex flex-wrap items-center gap-2"
       role="status"
       aria-label="Worklist summary for current scope"
     >
-      <Badge variant="secondary">Visible: {visibleCount}</Badge>
-      <Badge variant="outline" title="worklist_item.status = active">
-        Active: {activeCount}
+      <Badge
+        variant="secondary"
+        title={`${visibleCount} matching filters · ${activeCount} active in scope · ${acknowledgedActiveCount} acknowledged`}
+      >
+        Needs attention: {visibleCount}
       </Badge>
-      <Badge variant="outline" title="simulated_notification not acknowledged">
-        Unacknowledged: {unacknowledgedCount}
-      </Badge>
-      <Badge variant="outline" title="active and notification acknowledged">
-        Acknowledged: {acknowledgedActiveCount}
-      </Badge>
-      <Badge variant="outline" title={`risk_score older than stale threshold`}>
-        Stale scores: {staleScoreCount}
-      </Badge>
+      {unacknowledgedCount > 0 ? (
+        <Badge
+          variant="outline"
+          title="simulated_notification not acknowledged"
+        >
+          Unacked: {unacknowledgedCount}
+        </Badge>
+      ) : null}
+      {staleScoreCount > 0 ? (
+        <Badge
+          variant="outline"
+          className="text-risk-medium"
+          title="risk_score older than stale threshold"
+        >
+          Stale scores: {staleScoreCount}
+        </Badge>
+      ) : null}
     </div>
   )
 }

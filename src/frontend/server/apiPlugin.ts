@@ -2,10 +2,14 @@ import type { Plugin } from 'vite'
 import {
   dbPathsForLog,
   ensureSessionDb,
+  invalidateDbCache,
   openDb,
+  readSessionFlags,
   resetSessionFromSource,
+  writeSessionFlags,
 } from './db'
 import {
+  DecisionConflictError,
   queryCase,
   queryDataHealth,
   queryHistory,
@@ -15,6 +19,10 @@ import {
   writePlannerFeedback,
   writeUnack,
 } from './queries'
+import {
+  applyFlagsToCase,
+  applyFlagsToWorklist,
+} from './sessionFlags'
 
 async function readJson(req: import('node:http').IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
@@ -42,6 +50,15 @@ export function deliveryDbApiPlugin(): Plugin {
     configureServer(server) {
       const boot = ensureSessionDb()
       const paths = dbPathsForLog()
+      // Warm a single writable handle (avoids reopen races under HMR).
+      try {
+        openDb()
+      } catch (err) {
+        console.error(
+          '[delivery-db-api] failed to open session DB',
+          err instanceof Error ? err.message : err,
+        )
+      }
       console.info(`[delivery-db-api] source (RO)  → ${paths.source}`)
       console.info(
         `[delivery-db-api] session (RW) → ${paths.session}${boot.created ? ' [created]' : ''}`,
@@ -75,29 +92,34 @@ export function deliveryDbApiPlugin(): Plugin {
 
           if (method === 'GET' && pathname === '/api/worklist') {
             const db = openDb(true)
+            const flags = readSessionFlags()
             const includeLow = url.searchParams.get('include_low_risk') === '1'
             const warehouse = url.searchParams.get('warehouse_id')
             const status = url.searchParams.get('status') as 'active' | 'closed' | null
             const orderId = url.searchParams.get('order_id')
             const external = url.searchParams.get('external_order_id')
             const riskBandParam = url.searchParams.get('risk_band')
-            const data = queryWorklist(db, {
-              warehouse_id: warehouse ? Number(warehouse) : undefined,
-              status: status ?? 'active',
-              order_id: orderId ? Number(orderId) : undefined,
-              external_order_id: external ?? undefined,
-              include_low_risk: includeLow,
-              risk_band: riskBandParam
-                ? (riskBandParam.split(',') as Array<'Low' | 'Medium' | 'High'>)
-                : undefined,
-            })
+            const data = applyFlagsToWorklist(
+              queryWorklist(db, {
+                warehouse_id: warehouse ? Number(warehouse) : undefined,
+                status: status ?? 'active',
+                order_id: orderId ? Number(orderId) : undefined,
+                external_order_id: external ?? undefined,
+                include_low_risk: includeLow,
+                risk_band: riskBandParam
+                  ? (riskBandParam.split(',') as Array<'Low' | 'Medium' | 'High'>)
+                  : undefined,
+              }),
+              flags,
+            )
             return send(res, 200, data)
           }
 
           if (method === 'GET' && pathname.startsWith('/api/cases/')) {
             const orderId = Number(pathname.split('/').pop())
             const db = openDb(true)
-            return send(res, 200, queryCase(db, orderId))
+            const flags = readSessionFlags()
+            return send(res, 200, applyFlagsToCase(queryCase(db, orderId), flags))
           }
 
           if (method === 'GET' && pathname === '/api/history') {
@@ -107,7 +129,37 @@ export function deliveryDbApiPlugin(): Plugin {
 
           if (method === 'GET' && pathname === '/api/data-health') {
             const db = openDb(true)
-            return send(res, 200, queryDataHealth(db))
+            const flags = readSessionFlags()
+            return send(res, 200, queryDataHealth(db, flags))
+          }
+
+          if (method === 'POST' && pathname === '/api/session/agent-enabled') {
+            const body = (await readJson(req)) as { agent_enabled?: boolean }
+            if (typeof body.agent_enabled !== 'boolean') {
+              return send(res, 400, { error: 'agent_enabled boolean required' })
+            }
+            const flags = writeSessionFlags({ agent_enabled: body.agent_enabled })
+            const db = openDb(true)
+            return send(res, 200, queryDataHealth(db, flags))
+          }
+
+          if (method === 'GET' && pathname === '/api/session/flags') {
+            return send(res, 200, readSessionFlags())
+          }
+
+          if (method === 'POST' && pathname === '/api/session/flags') {
+            const body = (await readJson(req)) as Record<string, unknown>
+            const patch: Parameters<typeof writeSessionFlags>[0] = {}
+            for (const key of [
+              'agent_enabled',
+              'force_ai_unavailable',
+              'force_stale_scores',
+              'simulate_conflict_on_save',
+              'simulate_risk_increase',
+            ] as const) {
+              if (typeof body[key] === 'boolean') patch[key] = body[key]
+            }
+            return send(res, 200, writeSessionFlags(patch))
           }
 
           if (method === 'POST' && pathname === '/api/planner-feedback') {
@@ -117,23 +169,38 @@ export function deliveryDbApiPlugin(): Plugin {
               notes: string | null
               recorded_by: string
               recorded_at_utc: string
+              expected_feedback_id?: string | null
+            }
+            const flags = readSessionFlags()
+            const simulate = flags.simulate_conflict_on_save
+            if (simulate) {
+              writeSessionFlags({ simulate_conflict_on_save: false })
             }
             const db = openDb(false)
-            const row = writePlannerFeedback(db, {
-              recommendation_id: body.recommendation_id,
-              chosen_action_id: body.chosen_action_id as never,
-              notes: body.notes,
-              recorded_by: body.recorded_by,
-              recorded_at_utc: body.recorded_at_utc,
-            })
-            return send(res, 200, {
-              feedback_id: row.feedback_id,
-              recommendation_id: row.recommendation_id,
-              chosen_action_id: row.chosen_action_id,
-              notes: row.notes,
-              recorded_by: row.recorded_by,
-              recorded_at_utc: row.recorded_at_utc,
-            })
+            try {
+              const row = writePlannerFeedback(db, {
+                recommendation_id: body.recommendation_id,
+                chosen_action_id: body.chosen_action_id as never,
+                notes: body.notes,
+                recorded_by: body.recorded_by,
+                recorded_at_utc: body.recorded_at_utc,
+                expected_feedback_id: body.expected_feedback_id,
+                simulate_conflict: simulate,
+              })
+              return send(res, 200, {
+                feedback_id: row.feedback_id,
+                recommendation_id: row.recommendation_id,
+                chosen_action_id: row.chosen_action_id,
+                notes: row.notes,
+                recorded_by: row.recorded_by,
+                recorded_at_utc: row.recorded_at_utc,
+              })
+            } catch (err) {
+              if (err instanceof DecisionConflictError) {
+                return send(res, 409, { error: err.message })
+              }
+              throw err
+            }
           }
 
           if (
@@ -188,6 +255,10 @@ export function deliveryDbApiPlugin(): Plugin {
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err)
           console.error('[delivery-db-api]', message)
+          // Stale handle after HMR / interrupted I/O — drop cache for next request.
+          if (/disk I\/O|SQLITE_IOERR|unable to open|database is locked/i.test(message)) {
+            invalidateDbCache()
+          }
           return send(res, 500, { error: message })
         }
       })

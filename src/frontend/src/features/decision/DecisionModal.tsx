@@ -22,16 +22,24 @@ type Props = {
   detail: CaseDetail
   open: boolean
   onClose: () => void
+  onReload?: () => Promise<void>
   onSubmit: (input: {
     recommendation_id: string
     chosen_action_id: PlaybookActionId | null
     notes: string
     recorded_by: string
     recorded_at_utc: string
+    expected_feedback_id: string | null
   }) => Promise<void>
 }
 
-export function DecisionModal({ detail, open, onClose, onSubmit }: Props) {
+export function DecisionModal({
+  detail,
+  open,
+  onClose,
+  onReload,
+  onSubmit,
+}: Props) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const firstFieldRef = useRef<HTMLButtonElement>(null)
@@ -158,9 +166,14 @@ export function DecisionModal({ detail, open, onClose, onSubmit }: Props) {
         notes: encodeDecisionNotes(payload),
         recorded_by: actingRole.trim(),
         recorded_at_utc: new Date().toISOString(),
+        expected_feedback_id: detail.planner_feedback?.feedback_id ?? null,
       })
     } catch (e: unknown) {
-      setSubmitError(e instanceof Error ? e.message : 'Failed to save decision')
+      setSubmitError(
+        e instanceof Error
+          ? e.message
+          : 'Failed to save decision',
+      )
     } finally {
       setSubmitting(false)
     }
@@ -334,31 +347,21 @@ export function DecisionModal({ detail, open, onClose, onSubmit }: Props) {
           />
         </label>
 
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label className="block space-y-1 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">
-              Acting role
-            </span>
-            <input
-              className="h-9 w-full rounded-sm border border-border bg-background px-2 text-sm"
-              value={actingRole}
-              disabled={submitting}
-              onChange={(e) => setActingRole(e.target.value)}
-            />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">
-              Follow-up (optional)
-            </span>
-            <input
-              type="datetime-local"
-              className="h-9 w-full rounded-sm border border-border bg-background px-2 text-sm"
-              value={followUp}
-              disabled={submitting}
-              onChange={(e) => setFollowUp(e.target.value)}
-            />
-          </label>
-        </div>
+        <label className="mt-3 block space-y-1 text-sm">
+          <span className="text-xs font-medium text-muted-foreground">
+            Follow-up (optional)
+          </span>
+          <input
+            type="datetime-local"
+            className="h-9 w-full rounded-sm border border-border bg-background px-2 text-sm"
+            value={followUp}
+            disabled={submitting}
+            onChange={(e) => setFollowUp(e.target.value)}
+          />
+        </label>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          Recorded as {actingRole} (demo single-user)
+        </p>
 
         {fieldError ? (
           <p className="mt-3 text-sm text-destructive" role="alert">
@@ -366,9 +369,20 @@ export function DecisionModal({ detail, open, onClose, onSubmit }: Props) {
           </p>
         ) : null}
         {submitError ? (
-          <p className="mt-3 text-sm text-destructive" role="alert">
-            {submitError}
-          </p>
+          <div className="mt-3 space-y-2" role="alert">
+            <p className="text-sm text-destructive">{submitError}</p>
+            {onReload ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => void onReload()}
+              >
+                Reload case
+              </Button>
+            ) : null}
+          </div>
         ) : null}
 
         <div className="mt-4 flex flex-wrap justify-end gap-2">

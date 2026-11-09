@@ -56,18 +56,17 @@ export function HistoryTable({ rows, selectedEpisodeId, onSelect }: Props) {
                   {formatUtc(row.risk_episode.opened_at_utc)}
                 </td>
                 <td className="px-3 py-2">
-                  <div className="font-medium">
+                  <div
+                    className="font-medium"
+                    title={`episode ${ep} · p_late ${row.risk_score.p_late.toFixed(3)}`}
+                  >
                     {row.customer_order.external_order_id}
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {ep.slice(0, 8)}…
                   </div>
                 </td>
                 <td className="px-3 py-2">
-                  <RiskBadge risk={row.risk_band} />
-                  <div className="mt-0.5 font-mono text-xs text-muted-foreground">
-                    p_late {row.risk_score.p_late.toFixed(3)}
-                  </div>
+                  <span title={`p_late ${row.risk_score.p_late.toFixed(3)}`}>
+                    <RiskBadge risk={row.risk_band} />
+                  </span>
                 </td>
                 <td className="px-3 py-2 text-xs">
                   {recommendedAction(row)}

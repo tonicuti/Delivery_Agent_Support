@@ -1,4 +1,4 @@
-/** Demo role stub for F7 gate — not auth. */
+/** Demo role stub for F7 gate — not real auth. */
 export type DemoRole = 'dispatcher' | 'operator' | 'viewer'
 
 const KEY = 'demo-role'
@@ -14,7 +14,14 @@ export function setDemoRole(role: DemoRole): void {
   sessionStorage.setItem(KEY, role)
 }
 
-/** Internal feed detail pages — operators/dispatchers only in this stub. */
-export function canViewDataHealth(role: DemoRole = getDemoRole()): boolean {
+/** Can open /data-health at all. */
+export function canOpenDataHealth(role: DemoRole = getDemoRole()): boolean {
   return role === 'dispatcher' || role === 'operator'
+}
+
+/** Full feed table + agent toggle. */
+export function canSeeDataHealthDetail(
+  role: DemoRole = getDemoRole(),
+): boolean {
+  return role === 'operator'
 }

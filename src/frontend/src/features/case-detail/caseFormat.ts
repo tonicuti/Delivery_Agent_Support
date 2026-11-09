@@ -24,7 +24,7 @@ export function formatAge(iso: string, now = Date.now()): string {
 
 export function formatPromiseWindow(detail: CaseDetail): string {
   const pv = detail.promise_version
-  if (!pv) return 'Promise missing'
+  if (!pv) return 'Cannot assess — promised window missing'
   return `${formatUtc(pv.window_start_utc)} → ${formatUtc(pv.window_end_utc)}`
 }
 
@@ -230,6 +230,29 @@ export function recommendationUiStatus(
   if (rec.validation_status === 'unavailable') return 'unavailable'
   if (rec.validation_status === 'valid' && !rec.action_id) return 'incomplete'
   return 'checking'
+}
+
+/**
+ * F8: do not invite decide on delivered / cancelled episodes.
+ * History remains available separately.
+ */
+export function decisionBlockedReason(detail: CaseDetail): string | null {
+  if (detail.customer_order.cancelled_at_utc) {
+    return 'Order is cancelled — recording a new decision on the old recommendation is disabled.'
+  }
+  const ship = detail.shipment?.status
+  if (ship === 'delivered') {
+    return 'Shipment is delivered — approve/dismiss on the old recommendation is disabled. Use History for the record.'
+  }
+  if (ship === 'cancelled') {
+    return 'Shipment is cancelled — decide CTA is disabled for this recommendation.'
+  }
+  return null
+}
+
+/** Missing promised window: do not treat model Low/Med/High as a safe assessment. */
+export function canAssessRisk(detail: CaseDetail): boolean {
+  return detail.promise_version != null
 }
 
 export function parseRecommendationOutput(

@@ -9,70 +9,39 @@ export function CaseOrderLines({ detail }: Props) {
   const special =
     snap.special_handling === 1 ||
     detail.order_lines.some((l) => l.product.special_handling === 1)
+  const shortLines = detail.order_lines.filter(
+    (l) =>
+      l.latest_stock_event &&
+      l.latest_stock_event.stock_status !== 'in_stock',
+  )
 
   return (
-    <section className="space-y-3" aria-labelledby="case-order-heading">
-      <h2 id="case-order-heading" className="text-sm font-semibold tracking-tight">
-        Order + lines
-      </h2>
-
-      <div className="rounded-sm border border-border bg-card px-3 py-3 text-sm">
-        <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <dt className="text-xs text-muted-foreground">Customer</dt>
-            <dd>
-              {detail.customer.customer_type} ·{' '}
-              <span className="font-mono text-xs">
-                {detail.customer.external_customer_id}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Warehouse / region</dt>
-            <dd>
-              {snap.warehouse_name ?? detail.shipment?.warehouse.name ?? '—'}
-              {snap.region_name ? ` · ${snap.region_name}` : ''}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Delivery postcode</dt>
-            <dd>
-              {detail.delivery_site.postcode}
-              {detail.delivery_site.country_code
-                ? ` (${detail.delivery_site.country_code})`
-                : ''}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Weight / volume</dt>
-            <dd>
-              {snap.weight_kg != null ? `${snap.weight_kg} kg` : '—'}
-              {' · '}
-              {snap.volume_m3 != null ? `${snap.volume_m3.toFixed(2)} m³` : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Special handling</dt>
-            <dd>{special ? 'Yes' : 'No'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Site time zone</dt>
-            <dd>{detail.delivery_site.time_zone}</dd>
-          </div>
-        </dl>
+    <section className="space-y-2" aria-labelledby="case-order-heading">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2
+          id="case-order-heading"
+          className="text-sm font-semibold tracking-tight"
+        >
+          Order lines
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          {detail.customer.customer_type}
+          {snap.warehouse_name ? ` · ${snap.warehouse_name}` : ''}
+          {special ? ' · Special handling' : ''}
+          {shortLines.length > 0
+            ? ` · ${shortLines.length} line(s) not in stock`
+            : ''}
+        </p>
       </div>
 
       <div className="overflow-x-auto rounded-sm border border-border bg-card">
-        <table className="w-full min-w-[40rem] text-left text-sm">
+        <table className="w-full min-w-[28rem] text-left text-sm">
           <thead className="border-b border-border bg-muted/60 text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium">Line</th>
-              <th className="px-3 py-2 font-medium">SKU</th>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Qty</th>
-              <th className="px-3 py-2 font-medium">UoM</th>
-              <th className="px-3 py-2 font-medium">Stock (line)</th>
-              <th className="px-3 py-2 font-medium">Prep / stage</th>
+              <th className="px-2.5 py-1.5 font-medium">SKU</th>
+              <th className="px-2.5 py-1.5 font-medium">Name</th>
+              <th className="px-2.5 py-1.5 font-medium">Qty</th>
+              <th className="px-2.5 py-1.5 font-medium">Stock</th>
             </tr>
           </thead>
           <tbody>
@@ -83,38 +52,37 @@ export function CaseOrderLines({ detail }: Props) {
                   key={line.line_no}
                   className="border-b border-border last:border-0"
                 >
-                  <td className="px-3 py-2 font-mono text-xs">{line.line_no}</td>
-                  <td className="px-3 py-2 font-mono text-xs">
+                  <td
+                    className="px-2.5 py-1.5 font-mono text-xs"
+                    title={`Line ${line.line_no}`}
+                  >
                     {line.product.external_product_id}
                   </td>
-                  <td className="px-3 py-2">{line.product.name}</td>
-                  <td className="px-3 py-2">{line.ordered_qty}</td>
-                  <td className="px-3 py-2 text-xs">{line.product.unit}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-2.5 py-1.5">{line.product.name}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums">
+                    {line.ordered_qty}
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      {line.product.unit}
+                    </span>
+                  </td>
+                  <td className="px-2.5 py-1.5">
                     {stock ? (
-                      <div className="space-y-0.5">
-                        <Badge
-                          variant="outline"
-                          className={
-                            stock.stock_status === 'in_stock'
-                              ? undefined
-                              : 'text-risk-medium'
-                          }
-                        >
-                          {stock.stock_status}
-                        </Badge>
-                        <div className="text-xs text-muted-foreground">
-                          {formatUtc(stock.recorded_at_utc)}
-                        </div>
-                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          stock.stock_status === 'in_stock'
+                            ? undefined
+                            : 'text-risk-medium'
+                        }
+                        title={formatUtc(stock.recorded_at_utc)}
+                      >
+                        {stock.stock_status}
+                      </Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">
-                        No stock event
+                        No event
                       </span>
                     )}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {snap.warehouse_stage ?? '—'}
                   </td>
                 </tr>
               )
@@ -122,10 +90,6 @@ export function CaseOrderLines({ detail }: Props) {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Stock is shown per line. Snapshot order-level stock_status (
-        {snap.stock_status ?? '—'}) is not used as a whole-order “in stock” badge.
-      </p>
     </section>
   )
 }

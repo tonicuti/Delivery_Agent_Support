@@ -8,6 +8,7 @@ import type {
   DeletePlannerFeedbackResult,
   SavePlannerFeedbackInput,
   PlannerFeedback,
+  SessionFlags,
   SimulatedNotification,
   UnacknowledgeNotificationInput,
   WorklistQuery,
@@ -78,5 +79,20 @@ export const httpClient: DeliveryRiskApi = {
   },
   getDataHealth() {
     return request<DataHealthSnapshot>('/api/data-health')
+  },
+  setAgentEnabled(agent_enabled: boolean) {
+    return request<DataHealthSnapshot>('/api/session/agent-enabled', {
+      method: 'POST',
+      body: JSON.stringify({ agent_enabled }),
+    })
+  },
+  getSessionFlags() {
+    return request<SessionFlags>('/api/session/flags')
+  },
+  setSessionFlags(patch: Partial<SessionFlags>) {
+    return request<SessionFlags>('/api/session/flags', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
   },
 }

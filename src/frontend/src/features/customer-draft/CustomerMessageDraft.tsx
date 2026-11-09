@@ -69,11 +69,11 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
   }
 
   return (
-    <section
-      className="space-y-3 rounded-sm border border-border bg-card px-3 py-3"
+    <details
+      className="rounded-sm border border-border bg-card px-3 py-2"
       aria-labelledby="customer-draft-heading"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 select-none">
         <h2
           id="customer-draft-heading"
           className="text-sm font-semibold tracking-tight"
@@ -82,15 +82,17 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
         </h2>
         {hasUnverified ? (
           <Badge variant="outline" className="text-risk-medium">
-            Includes unverified facts
+            Unverified facts
           </Badge>
         ) : null}
-      </div>
+        <span className="text-xs font-normal text-muted-foreground">
+          optional · copy only
+        </span>
+      </summary>
 
+      <div className="mt-3 space-y-3">
       <p className="text-xs text-muted-foreground">
-        Copy-only helper for existing channels. Does not send email or SMS.
-        Templates never include model p_late or claims that ERP/TMS actions
-        already ran.
+        Does not send email or SMS. Never claims ERP/TMS actions already ran.
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -183,6 +185,7 @@ export function CustomerMessageDraft({ detail, onToast }: Props) {
           Send disabled — not connected in MVP
         </span>
       </div>
-    </section>
+      </div>
+    </details>
   )
 }

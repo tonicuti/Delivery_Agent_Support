@@ -202,8 +202,9 @@ export function WorklistPage() {
           Orders needing attention
         </h1>
         <p className="text-muted-foreground">
-          Prioritized worklist for the current warehouse scope. Sorted by{' '}
-          <span className="font-mono text-xs">p_late</span> (high first).
+          Orders needing attention in demo scope (Stockholm WH1). Ranked by{' '}
+          <span className="font-mono text-xs">p_late</span> for now — not full
+          Priority = P(late)×impact×urgency.
         </p>
       </div>
 

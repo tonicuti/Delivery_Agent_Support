@@ -4,6 +4,7 @@ import {
   type CaseDetail,
   type PlaybookActionId,
 } from '../src/shared/types'
+import { computeRiskIncreased } from './riskIncrease'
 
 type Row = Record<string, unknown>
 
@@ -243,6 +244,13 @@ export function queryCase(db: DatabaseSync, order_id: number): CaseDetail {
   )
 
   const p_late = Number(rs.p_late)
+  const openingScore = get(
+    db,
+    `SELECT p_late FROM risk_score WHERE score_id = ?`,
+    [Number(wl.opening_score_id)],
+  )
+  const opening_p_late =
+    openingScore?.p_late == null ? null : Number(openingScore.p_late)
 
   return {
     customer_order: {
@@ -328,6 +336,7 @@ export function queryCase(db: DatabaseSync, order_id: number): CaseDetail {
       reason_codes_json: String(rs.reason_codes_json ?? '[]'),
     },
     risk_band: risk_band(p_late),
+    risk_increased: computeRiskIncreased(p_late, opening_p_late),
     risk_episode: {
       episode_id: String(wl.episode_id),
       order_id: Number(wl.order_id),

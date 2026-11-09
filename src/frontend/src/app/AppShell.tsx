@@ -1,12 +1,18 @@
 import { Badge } from '@/shared/ui/badge'
 import { Input } from '@/shared/ui/input'
 import { Separator } from '@/shared/ui/separator'
-import { ClipboardList, Database, History, LineChart } from 'lucide-react'
+import {
+  ClipboardList,
+  Database,
+  History,
+  Home,
+  LineChart,
+} from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 
 const nav = [
-  { to: '/', label: 'Orders needing attention', icon: ClipboardList, end: true },
+  { to: '/dashboard', label: 'Orders needing attention', icon: ClipboardList },
   { to: '/history', label: 'History', icon: History },
   { to: '/data-health', label: 'Data health', icon: Database },
   { to: '/performance', label: 'Performance', icon: LineChart },
@@ -32,7 +38,10 @@ export function AppShell({ children }: Props) {
     const q = orderQuery.trim()
     const params = new URLSearchParams()
     if (q) params.set('q', q)
-    navigate({ pathname: '/', search: params.toString() ? `?${params}` : '' })
+    navigate({
+      pathname: '/dashboard',
+      search: params.toString() ? `?${params}` : '',
+    })
   }
 
   return (
@@ -46,36 +55,33 @@ export function AppShell({ children }: Props) {
 
       <header className="border-b border-border bg-card">
         <div className="flex flex-wrap items-center gap-3 px-4 py-2">
-          <div className="mr-2 text-sm font-semibold tracking-tight">
+          <Link
+            to="/"
+            className="mr-2 text-sm font-semibold tracking-tight hover:text-primary"
+            title="Home"
+          >
             Delivery Risk Agent
-          </div>
+          </Link>
 
-          <Badge variant="secondary">Session DB</Badge>
-          <Badge variant="outline">Demo</Badge>
+          <Badge
+            variant="secondary"
+            title="Session SQLite copy — not live ERP/TMS"
+          >
+            Demo · session copy
+          </Badge>
 
           <Separator orientation="vertical" className="hidden h-6 sm:block" />
 
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            Country
-            <select
-              className="h-8 cursor-pointer rounded-sm border border-border bg-background px-2 text-sm text-foreground"
-              defaultValue="SE"
-              aria-label="Country scope"
-            >
-              <option value="SE">Sweden (SE)</option>
-            </select>
-          </label>
-
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            Warehouse
-            <select
-              className="h-8 cursor-pointer rounded-sm border border-border bg-background px-2 text-sm text-foreground"
-              defaultValue="1"
-              aria-label="Warehouse scope"
-            >
-              <option value="1">warehouse_id 1 (Stockholm)</option>
-            </select>
-          </label>
+          <div
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"
+            title="Pilot scope is fixed in this demo — selects are not live filters"
+          >
+            <span>
+              Scope:{' '}
+              <span className="text-foreground">Sweden · Stockholm (WH1)</span>
+            </span>
+            <span className="text-[10px]">(demo fixed)</span>
+          </div>
 
           <form onSubmit={onSearch} className="min-w-[12rem] flex-1">
             <Input
@@ -87,26 +93,41 @@ export function AppShell({ children }: Props) {
               className="h-8"
             />
           </form>
-
-          <Badge variant="outline" title="Data from session SQLite copy">
-            Session copy
-          </Badge>
-
-          <span className="text-xs text-muted-foreground">dispatcher@demo</span>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         <nav
           aria-label="Primary"
-          className="flex w-56 shrink-0 flex-col gap-1 border-r border-border bg-card p-2"
+          className="flex w-56 shrink-0 flex-col border-r border-border bg-card"
         >
-          {nav.map(({ to, label, icon: Icon, ...rest }) => (
-            <NavLink key={to} to={to} className={navClass} {...rest}>
-              <Icon className="size-4 shrink-0" aria-hidden />
-              <span>{label}</span>
-            </NavLink>
-          ))}
+          <div className="flex flex-1 flex-col gap-1 p-2">
+            <Link
+              to="/"
+              className="mb-1 flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Home className="size-4 shrink-0" aria-hidden />
+              <span>Home & guide</span>
+            </Link>
+            {nav.map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={to} className={navClass}>
+                <Icon className="size-4 shrink-0" aria-hidden />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </div>
+          <div className="border-t border-border p-2">
+            <Link
+              to="/demo-controls"
+              className="flex items-center justify-between gap-2 rounded-sm px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+              title="Force AI / stale / conflict scenarios (session only)"
+            >
+              <span className="font-medium">Demo controls</span>
+              <Badge variant="outline" className="text-[10px]">
+                F8
+              </Badge>
+            </Link>
+          </div>
         </nav>
 
         <main id="main-content" className="min-w-0 flex-1 overflow-auto p-4">

@@ -47,6 +47,7 @@ Map issue GitHub: [ISSUE_MAP.md](ISSUE_MAP.md) (#6–#14 dưới parent #3)
 
 - Trang mặc định = **Orders needing attention**
 - Tách: Risk / Priority / Time left / Work status / Decision / Execution / Outcome
+- **Data health** ≠ **Performance**: tin cậy dữ liệu vs hiệu quả nghiệp vụ — không gộp một dashboard; MVP ưu tiên data health, Performance = link Power BI / tóm tắt tối thiểu
 - Approve = lưu decision; **không** đổi ERP/TMS
 - AI unavailable → vẫn review thủ công
 - Mỗi chứng cứ: nguồn + timestamp; thiếu data ≠ sự kiện chắc chắn

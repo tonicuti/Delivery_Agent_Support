@@ -2,6 +2,7 @@ import type { CaseDetail } from '@/shared/types'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import {
+  decisionBlockedReason,
   formatUtc,
   parseRecommendationOutput,
   playbookLabel,
@@ -24,15 +25,15 @@ const STATUS_COPY: Record<
   },
   ready: {
     label: 'Ready',
-    hint: 'Validated playbook suggestion — verify evidence before deciding.',
+    hint: 'Validated suggestion — verify evidence before deciding.',
   },
   incomplete: {
     label: 'Incomplete',
-    hint: 'Suggestion exists but is incomplete or invalid. Manual action is available.',
+    hint: 'Suggestion incomplete/invalid. Manual action is available.',
   },
   unavailable: {
     label: 'Unavailable',
-    hint: 'No usable AI suggestion. Review evidence and choose an action manually.',
+    hint: 'No usable AI suggestion. Decide manually from evidence.',
   },
 }
 
@@ -41,15 +42,21 @@ export function CaseRecommendation({ detail, onDecide }: Props) {
   const copy = STATUS_COPY[status]
   const rec = detail.agent_recommendation
   const parsed = parseRecommendationOutput(detail)
-  const canDecide = status === 'ready' || status === 'incomplete' || status === 'unavailable'
+  const blocked = decisionBlockedReason(detail)
+  const canDecide =
+    !blocked &&
+    (status === 'ready' || status === 'incomplete' || status === 'unavailable')
 
   return (
     <section
-      className="space-y-3 rounded-sm border border-border bg-card px-3 py-3"
+      className="space-y-2.5 rounded-sm border border-border bg-card px-3 py-3"
       aria-labelledby="case-ai-heading"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="case-ai-heading" className="text-sm font-semibold tracking-tight">
+        <h2
+          id="case-ai-heading"
+          className="text-sm font-semibold tracking-tight"
+        >
           AI recommendation
         </h2>
         <Badge
@@ -60,85 +67,64 @@ export function CaseRecommendation({ detail, onDecide }: Props) {
         </Badge>
       </div>
 
-      <p className="text-xs text-muted-foreground">{copy.hint}</p>
-
+      <p className="text-sm font-medium capitalize">
+        {playbookLabel(rec?.action_id ?? null)}
+      </p>
       {parsed.summary ? (
-        <div>
-          <h3 className="text-xs font-medium text-muted-foreground">Assessment</h3>
-          <p className="mt-0.5 text-sm">{parsed.summary}</p>
-        </div>
-      ) : null}
+        <p className="text-sm text-muted-foreground">{parsed.summary}</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">{copy.hint}</p>
+      )}
 
-      {parsed.error ? (
-        <p className="text-sm text-muted-foreground">
-          Detail: <span className="font-mono text-xs">{parsed.error}</span>
+      {(parsed.missing_information.length > 0 ||
+        parsed.supporting_evidence_ids.length > 0 ||
+        parsed.error ||
+        rec) && (
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer select-none hover:text-foreground">
+            Suggestion detail
+          </summary>
+          <div className="mt-1.5 space-y-1.5">
+            {rec ? (
+              <p>Generated {formatUtc(rec.created_at_utc)}</p>
+            ) : null}
+            {parsed.suggested_owner ? (
+              <p>Owner: {parsed.suggested_owner}</p>
+            ) : null}
+            {parsed.suggested_response_deadline ? (
+              <p>
+                Deadline: {formatUtc(parsed.suggested_response_deadline)}
+              </p>
+            ) : null}
+            {parsed.error ? (
+              <p className="font-mono">{parsed.error}</p>
+            ) : null}
+            {parsed.missing_information.length > 0 ? (
+              <ul className="list-inside list-disc">
+                {parsed.missing_information.map((m) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+            ) : null}
+            {parsed.supporting_evidence_ids.length > 0 ? (
+              <p className="font-mono">
+                Evidence: {parsed.supporting_evidence_ids.join(', ')}
+              </p>
+            ) : null}
+          </div>
+        </details>
+      )}
+
+      {blocked ? (
+        <p className="rounded-sm border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+          {blocked}
         </p>
       ) : null}
 
-      <dl className="grid gap-2 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="text-xs text-muted-foreground">Playbook action</dt>
-          <dd className="capitalize">
-            {playbookLabel(rec?.action_id ?? null)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Generated at</dt>
-          <dd>{rec ? formatUtc(rec.created_at_utc) : '—'}</dd>
-        </div>
-        {parsed.suggested_owner ? (
-          <div>
-            <dt className="text-xs text-muted-foreground">Suggested owner</dt>
-            <dd>{parsed.suggested_owner}</dd>
-          </div>
-        ) : null}
-        {parsed.suggested_response_deadline ? (
-          <div>
-            <dt className="text-xs text-muted-foreground">Response deadline</dt>
-            <dd>{formatUtc(parsed.suggested_response_deadline)}</dd>
-          </div>
-        ) : null}
-      </dl>
-
-      {parsed.supporting_evidence_ids.length > 0 ? (
-        <div>
-          <h3 className="text-xs font-medium text-muted-foreground">
-            Supporting evidence
-          </h3>
-          <ul className="mt-1 flex flex-wrap gap-1">
-            {parsed.supporting_evidence_ids.map((id) => (
-              <li key={id}>
-                <Badge variant="outline" className="font-mono font-normal">
-                  {id}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {parsed.missing_information.length > 0 ? (
-        <div>
-          <h3 className="text-xs font-medium text-muted-foreground">
-            Missing data / preconditions
-          </h3>
-          <ul className="mt-1 list-inside list-disc text-sm text-muted-foreground">
-            {parsed.missing_information.map((m) => (
-              <li key={m}>{m}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       {canDecide ? (
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <Button type="button" size="sm" onClick={onDecide}>
-            Decide action
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Opens decision modal — saves to session planner_feedback only.
-          </span>
-        </div>
+        <Button type="button" size="sm" className="w-full" onClick={onDecide}>
+          Decide action
+        </Button>
       ) : null}
     </section>
   )

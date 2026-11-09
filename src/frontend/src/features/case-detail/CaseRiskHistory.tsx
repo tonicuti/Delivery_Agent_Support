@@ -2,19 +2,20 @@ import { formatUtc, type RiskHistoryEvent } from './caseFormat'
 
 type Props = { events: RiskHistoryEvent[] }
 
+/** Trace timeline — collapsed by default so decide path stays short. */
 export function CaseRiskHistory({ events }: Props) {
   return (
-    <section className="space-y-3" aria-labelledby="case-risk-hist-heading">
-      <h2
-        id="case-risk-hist-heading"
-        className="text-sm font-semibold tracking-tight"
-      >
+    <details className="rounded-sm border border-border bg-card px-3 py-2">
+      <summary className="cursor-pointer select-none text-sm font-semibold tracking-tight">
         Risk history
-      </h2>
-      <p className="text-xs text-muted-foreground">
+        <span className="ml-2 font-normal text-muted-foreground">
+          {events.length} events · open to trace
+        </span>
+      </summary>
+      <p className="mt-2 text-xs text-muted-foreground">
         Discrete snapshots only — not a continuous chart.
       </p>
-      <ol className="space-y-2 border-l border-border pl-3">
+      <ol className="mt-2 space-y-2 border-l border-border pl-3">
         {events.map((ev) => (
           <li key={ev.id} className="relative text-sm">
             <span
@@ -28,6 +29,6 @@ export function CaseRiskHistory({ events }: Props) {
           </li>
         ))}
       </ol>
-    </section>
+    </details>
   )
 }

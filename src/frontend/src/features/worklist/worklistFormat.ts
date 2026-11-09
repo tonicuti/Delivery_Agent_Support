@@ -24,7 +24,7 @@ export function isScoreStale(row: WorklistRow, now = Date.now()): boolean {
 
 export function formatPromiseWindow(row: WorklistRow): string {
   const pv = row.promise_version
-  if (!pv) return 'Promise missing'
+  if (!pv) return 'Cannot assess — promised window missing'
   const start = formatUtcShort(pv.window_start_utc)
   const end = formatUtcShort(pv.window_end_utc)
   return `${start} → ${end}`

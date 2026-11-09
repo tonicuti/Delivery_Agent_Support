@@ -29,7 +29,7 @@ export function WorklistTable({
 }: Props) {
   return (
     <div className="overflow-x-auto rounded-sm border border-border bg-card">
-      <table className="w-full min-w-[72rem] text-left text-sm">
+      <table className="w-full min-w-[56rem] text-left text-sm">
         <thead className="border-b border-border bg-muted/60 text-xs text-muted-foreground">
           <tr>
             <th className="px-3 py-2 font-medium">#</th>
@@ -39,9 +39,8 @@ export function WorklistTable({
             <th className="px-3 py-2 font-medium">Risk</th>
             <th className="px-3 py-2 font-medium">Reasons</th>
             <th className="px-3 py-2 font-medium">Stage</th>
-            <th className="px-3 py-2 font-medium">Suggested action</th>
-            <th className="px-3 py-2 font-medium">Work</th>
-            <th className="px-3 py-2 font-medium">Updated</th>
+            <th className="px-3 py-2 font-medium">Suggested</th>
+            <th className="px-3 py-2 font-medium">Flags</th>
             <th className="px-3 py-2 font-medium">Actions</th>
           </tr>
         </thead>
@@ -52,6 +51,8 @@ export function WorklistTable({
             const stale = isScoreStale(row)
             const unacked = isUnacknowledged(row)
             const episodeId = row.worklist_item.episode_id
+            const aiUnavailable =
+              row.agent_recommendation?.validation_status === 'unavailable'
 
             return (
               <tr
@@ -67,7 +68,7 @@ export function WorklistTable({
               >
                 <td
                   className="px-3 py-2 font-mono text-xs"
-                  title="Rank by p_late descending (model late probability)"
+                  title={`Demo rank by p_late (${row.risk_score.p_late.toFixed(3)}) — not full Priority = P(late)×impact×urgency`}
                 >
                   {index + 1}
                 </td>
@@ -75,13 +76,11 @@ export function WorklistTable({
                   <button
                     type="button"
                     className="cursor-pointer text-left font-medium text-primary underline-offset-2 hover:underline"
+                    title={`Internal order_id ${row.customer_order.order_id}`}
                     onClick={() => onReview(row.customer_order.order_id)}
                   >
                     {row.customer_order.external_order_id}
                   </button>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    order_id {row.customer_order.order_id}
-                  </div>
                 </td>
                 <td className="px-3 py-2 text-xs">
                   <div>{row.customer.customer_type}</div>
@@ -90,9 +89,15 @@ export function WorklistTable({
                   </div>
                 </td>
                 <td className="px-3 py-2 text-xs">
-                  <div>{formatPromiseWindow(row)}</div>
+                  <div className="text-muted-foreground">
+                    {formatPromiseWindow(row)}
+                  </div>
                   <div
-                    className="text-muted-foreground"
+                    className={
+                      (row.order_snapshot.hours_to_deadline ?? 0) < 0
+                        ? 'font-semibold text-risk-high'
+                        : 'font-semibold text-foreground'
+                    }
                     title="From order_snapshot.hours_to_deadline"
                   >
                     {timeLeft.label}
@@ -100,10 +105,26 @@ export function WorklistTable({
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-col items-start gap-1">
-                    <RiskBadge risk={row.risk_band} />
-                    <span className="font-mono text-xs text-muted-foreground">
-                      p_late {row.risk_score.p_late.toFixed(3)}
-                    </span>
+                    {row.promise_version ? (
+                      <span
+                        title={`p_late ${row.risk_score.p_late.toFixed(3)} (model probability)`}
+                      >
+                        <RiskBadge risk={row.risk_band} />
+                      </span>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-risk-medium"
+                        title="Cannot assess — promised window missing"
+                      >
+                        Cannot assess
+                      </Badge>
+                    )}
+                    {row.risk_increased ? (
+                      <Badge variant="outline" className="text-risk-high">
+                        Risk increased
+                      </Badge>
+                    ) : null}
                   </div>
                 </td>
                 <td className="px-3 py-2">
@@ -127,21 +148,32 @@ export function WorklistTable({
                 <td className="px-3 py-2 text-xs text-muted-foreground">
                   {suggestedActionLabel(row)}
                 </td>
-                <td className="px-3 py-2 text-xs">
-                  <div>{row.worklist_item.status}</div>
-                  {unacked ? (
-                    <Badge variant="secondary" className="mt-1">
-                      Unacked alert
-                    </Badge>
-                  ) : null}
-                </td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">
-                  <div>{formatUpdatedAge(row.worklist_item.updated_at_utc)}</div>
-                  {stale ? (
-                    <Badge variant="outline" className="mt-1 text-risk-medium">
-                      Stale score
-                    </Badge>
-                  ) : null}
+                <td className="px-3 py-2">
+                  <div className="flex flex-col items-start gap-0.5">
+                    {unacked ? (
+                      <Badge variant="secondary">Unacked</Badge>
+                    ) : null}
+                    {stale ? (
+                      <Badge variant="outline" className="text-risk-medium">
+                        Stale
+                      </Badge>
+                    ) : null}
+                    {aiUnavailable ? (
+                      <Badge variant="outline">AI n/a</Badge>
+                    ) : null}
+                    {!unacked && !stale && !aiUnavailable ? (
+                      <span
+                        className="text-xs text-muted-foreground"
+                        title={`Updated ${formatUpdatedAge(row.worklist_item.updated_at_utc)} · ${row.worklist_item.status}`}
+                      >
+                        {formatUpdatedAge(row.worklist_item.updated_at_utc)}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatUpdatedAge(row.worklist_item.updated_at_utc)}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-col gap-1">
