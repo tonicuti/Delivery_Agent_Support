@@ -1,3 +1,7 @@
+# System context and workflow notes
+
+The companion `system_context.mmd` shows the system boundary and its essential external interactions. The rules below explain the staff queue and redelivery states without crowding the diagram.
+
 | Step | Intended workflow |
 |---|---|
 | 1 | Retailer or order staff provide orders, customer promises, delivery sites, and each order’s assigned management team. Warehouse and carrier staff provide stock, shipment, ETA, and handover events. |

@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" role="img" aria-labelledby="title desc">
+  <title id="title">Delivery Risk Agent MVP — UML-style system context</title>
+  <desc id="desc">Retailer, warehouse and carrier staff and external data services provide evidence. The agent checks original delivery risk and provides a ranked queue to regional planners. Handover evidence can open a separate claim and same-order redelivery path; a representative inspects and approves replacements before the assigned order team receives an urgent task. Approval stops original-delivery scoring.</desc>
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#3167aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#168576" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#bf7340" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <style>
+      text { font-family: 'Segoe UI', Arial, sans-serif; fill: #17283c; }
+      .title { font-size: 34px; font-weight: 700; letter-spacing: -.7px; }
+      .subtitle { font-size: 17px; fill: #52677e; }
+      .section { font-size: 20px; font-weight: 700; fill: #23466f; }
+      .role { font-size: 12px; font-weight: 700; letter-spacing: 1.6px; fill: #64758a; }
+      .name { font-size: 18px; font-weight: 650; }
+      .name-small { font-size: 16.5px; font-weight: 650; }
+      .usecase { font-size: 22px; font-weight: 700; }
+      .usecase-sub { font-size: 16px; fill: #42607e; }
+      .edge-label { font-size: 14.5px; font-weight: 600; fill: #39536d; }
+      .note-title { font-size: 16px; font-weight: 700; }
+      .note { font-size: 15px; fill: #53677d; }
+      .flow { fill: none; stroke: #3167aa; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow-blue); }
+      .claim { fill: none; stroke: #168576; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow-teal); }
+      .approval { fill: none; stroke: #bf7340; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow-orange); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1120" fill="#f7f9fc"/>
+  <rect x="0" y="0" width="1600" height="12" fill="#2761a5"/>
+  <text x="65" y="72" class="title">Delivery Risk Agent</text>
+  <text x="65" y="105" class="subtitle">Who provides information, who makes decisions, and what the system does</text>
+  <text x="1535" y="70" class="role" text-anchor="end">UML-STYLE SYSTEM CONTEXT</text>
+
+  <!-- The system boundary contains exactly the three functions in system_context.mmd. -->
+  <rect x="350" y="155" width="900" height="858" rx="23" fill="#ffffff" stroke="#4973a3" stroke-width="2.5" stroke-dasharray="11 7"/>
+  <rect x="376" y="134" width="410" height="44" rx="14" fill="#e8f1fd"/>
+  <text x="396" y="163" class="section">Delivery Risk Agent MVP</text>
+  <text x="1219" y="186" class="role" text-anchor="end">SYSTEM BOUNDARY</text>
+
+  <!-- External UML actors: the stick figure and role label belong to one actor card. -->
+  <g fill="#fff" stroke="#c7d4e2" stroke-width="1.8">
+    <rect x="55" y="286" width="259" height="145" rx="18"/>
+    <rect x="55" y="620" width="259" height="142" rx="18"/>
+    <rect x="1310" y="222" width="240" height="142" rx="18"/>
+    <rect x="1310" y="590" width="240" height="142" rx="18"/>
+    <rect x="1310" y="845" width="240" height="142" rx="18"/>
+  </g>
+  <g fill="none" stroke="#58718e" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="91" cy="337" r="11"/><path d="M91 348v30m-18-19 18-8 18 8m-18 19-15 19m15-19 15 19"/>
+    <circle cx="91" cy="668" r="11"/><path d="M91 679v30m-18-19 18-8 18 8m-18 19-15 19m15-19 15 19"/>
+    <circle cx="1346" cy="270" r="11"/><path d="M1346 281v30m-18-19 18-8 18 8m-18 19-15 19m15-19 15 19"/>
+    <circle cx="1346" cy="638" r="11"/><path d="M1346 649v30m-18-19 18-8 18 8m-18 19-15 19m15-19 15 19"/>
+    <circle cx="1346" cy="892" r="11"/><path d="M1346 903v30m-18-19 18-8 18 8m-18 19-15 19m15-19 15 19"/>
+  </g>
+  <text x="125" y="324" class="role">ACTOR</text>
+  <text x="125" y="349" class="name-small">Retailer, warehouse</text>
+  <text x="125" y="371" class="name-small">and carrier staff</text>
+  <text x="125" y="657" class="role">EXTERNAL SOURCE</text>
+  <text x="125" y="682" class="name-small">Weather, travel</text>
+  <text x="125" y="704" class="name-small">and holiday APIs</text>
+  <text x="1381" y="265" class="role">ACTOR</text>
+  <text x="1381" y="291" class="name-small">Regional</text>
+  <text x="1381" y="314" class="name-small">planning staff</text>
+  <text x="1381" y="630" class="role">ACTOR</text>
+  <text x="1381" y="656" class="name-small">Customer</text>
+  <text x="1381" y="679" class="name-small">representative</text>
+  <text x="1381" y="885" class="role">ACTOR</text>
+  <text x="1381" y="911" class="name-small">Assigned order</text>
+  <text x="1381" y="934" class="name-small">management team</text>
+
+  <!-- The two workflows are separate, but share the original order and evidence. -->
+  <text x="398" y="230" class="role">ORIGINAL DELIVERY</text>
+  <text x="398" y="621" class="role">CLAIM + SAME-ORDER REDELIVERY</text>
+  <ellipse cx="585" cy="405" rx="161" ry="75" fill="#eaf2fd" stroke="#3171bb" stroke-width="2.5"/>
+  <ellipse cx="1020" cy="405" rx="165" ry="75" fill="#eaf2fd" stroke="#3171bb" stroke-width="2.5"/>
+  <ellipse cx="982" cy="760" rx="192" ry="88" fill="#e9f7f3" stroke="#168576" stroke-width="2.5"/>
+  <text x="585" y="392" text-anchor="middle" class="usecase">Gather order and</text>
+  <text x="585" y="418" text-anchor="middle" class="usecase">delivery evidence</text>
+  <text x="585" y="445" text-anchor="middle" class="usecase-sub">Use facts available at the time</text>
+  <text x="1020" y="385" text-anchor="middle" class="usecase">Prioritize delivery risk</text>
+  <text x="1020" y="415" text-anchor="middle" class="usecase-sub">High risk first</text>
+  <text x="1020" y="438" text-anchor="middle" class="usecase-sub">Reviewed High risk last</text>
+  <text x="982" y="739" text-anchor="middle" class="usecase">Manage claim and</text>
+  <text x="982" y="766" text-anchor="middle" class="usecase">same-order redelivery</text>
+  <text x="982" y="796" text-anchor="middle" class="usecase-sub">Replacement requires approval</text>
+
+  <!-- Lines are drawn after shapes and before their labels for legibility. -->
+  <path d="M314 365 L423 395" class="flow"/>
+  <path d="M314 681 L387 681 L387 486 L451 450" class="flow"/>
+  <path d="M747 405 L853 405" class="flow"/>
+  <path d="M714 456 L721 456 L721 753 L789 753" class="claim"/>
+  <path d="M954 674 L954 546 L604 546 L604 481" class="approval"/>
+  <path d="M1175 385 L1282 385 L1282 323 L1310 323" class="flow"/>
+  <path d="M1310 258 L1262 258 L1262 331 L1168 371" class="flow"/>
+  <path d="M1155 707 L1278 707 L1278 651 L1310 651" class="claim"/>
+  <path d="M1310 687 L1289 687 L1289 770 L1175 770" class="approval"/>
+  <path d="M1139 810 L1263 915 L1310 915" class="claim"/>
+
+  <g fill="#ffffff" opacity=".96">
+    <rect x="312" y="286" width="127" height="57" rx="8"/>
+    <rect x="344" y="543" width="133" height="57" rx="8"/>
+    <rect x="744" y="313" width="133" height="65" rx="8"/>
+    <rect x="608" y="644" width="106" height="56" rx="8"/>
+    <rect x="772" y="507" width="176" height="51" rx="8"/>
+    <rect x="1179" y="205" width="128" height="45" rx="8"/>
+    <rect x="1188" y="396" width="118" height="51" rx="8"/>
+    <rect x="1187" y="624" width="123" height="35" rx="8"/>
+    <rect x="1188" y="738" width="120" height="45" rx="8"/>
+    <rect x="1163" y="825" width="140" height="61" rx="8"/>
+  </g>
+  <text x="322" y="307" class="edge-label">Orders, promises,</text>
+  <text x="322" y="330" class="edge-label">delivery updates</text>
+  <text x="354" y="565" class="edge-label">Dated external</text>
+  <text x="354" y="587" class="edge-label">observations</text>
+  <text x="754" y="337" class="edge-label">New evidence</text>
+  <text x="754" y="360" class="edge-label">triggers recheck</text>
+  <text x="617" y="667" class="edge-label">Handover and</text>
+  <text x="617" y="690" class="edge-label">replacement facts</text>
+  <text x="782" y="529" class="edge-label" fill="#aa6435">Approval stops</text>
+  <text x="782" y="550" class="edge-label" fill="#aa6435">original scoring</text>
+  <text x="1189" y="226" class="edge-label">Review; mark</text>
+  <text x="1189" y="247" class="edge-label">High handled</text>
+  <text x="1198" y="418" class="edge-label">Ranked orders +</text>
+  <text x="1198" y="440" class="edge-label">recommendations</text>
+  <text x="1197" y="647" class="edge-label">Claim details</text>
+  <text x="1198" y="759" class="edge-label">Inspect + approve</text>
+  <text x="1173" y="848" class="edge-label">Urgent task + issues</text>
+  <text x="1173" y="872" class="edge-label">High until accepted</text>
+
+  <rect x="382" y="899" width="832" height="83" rx="13" fill="#f3f6fb" stroke="#d8e2ee"/>
+  <text x="405" y="927" class="note-title">Important distinction</text>
+  <text x="405" y="952" class="note">Planning staff handle a risk review. The customer representative approves replacement.</text>
+  <text x="405" y="973" class="note">Approval sends an urgent task to the order’s assigned team; it does not mark risk review handled.</text>
+
+  <text x="66" y="1073" class="subtitle">Arrows show information or action moving between people, external sources, and system functions.</text>
+  <text x="1534" y="1073" class="subtitle" text-anchor="end">Based on system_context.mmd</text>
+</svg>

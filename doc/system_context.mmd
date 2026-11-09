@@ -1,45 +1,34 @@
 flowchart LR
-    %% System context for the Swedish Delivery Risk Agent MVP.
-    %% People and providers are outside; the four central nodes are inside.
+    %% One customer order; original-delivery scoring and redelivery are separate workflows.
 
-    subgraph operational["People and operational sources — outside"]
-        Retailer["Retailer / order staff"]
-        Operations["Warehouse / carrier staff"]
-        Planner["Regional planning team"]
-        Representative["Customer representative"]
-        Management["Assigned order management team"]
+    Staff["Retailer, warehouse and carrier staff"]
+    APIs["Weather, travel and holiday APIs"]
+    Planner["Regional planning staff"]
+    Rep["Customer representative"]
+    Team["Assigned order management team"]
+
+    subgraph System["Delivery Risk Agent MVP - system boundary"]
+        Evidence["Order and delivery evidence"]
+        Risk["Risk queue: High first, handled last"]
+        Redelivery["Claims and same-order redelivery"]
+
+        Evidence -->|"time-safe facts; new evidence triggers rescore"| Risk
+        Evidence -->|"handover and replacement evidence"| Redelivery
+        Redelivery -->|"approval stops original scoring"| Evidence
     end
 
-    subgraph system["System boundary — Delivery Risk Agent MVP"]
-        Evidence["Evidence intake and SQLite records"]
-        Risk["Time-safe features, LightGBM scoring and Agent"]
-        Planning["Model queue: unhandled High by score, handled last"]
-        Replacement["Same order: claim, redelivery task and urgent override"]
-        Evidence -->|"eligible original orders; new time-safe evidence"| Risk
-        Risk -->|"score and band; High recommendation; new concern reopens review"| Planning
-        Evidence -->|"same order: discrepancy, replacement ETA and accepted units"| Replacement
-        Replacement -->|"approval stops scoring; urgent High until all units accepted"| Evidence
-    end
+    Staff -->|"orders, promises and delivery events"| Evidence
+    APIs -->|"timestamped observations"| Evidence
 
-    subgraph providers["External information providers — outside"]
-        Weather["Weather API"]
-        Travel["Travel-time API"]
-        Holidays["Holiday API"]
-    end
+    Risk -->|"ranked orders and recommendations"| Planner
+    Planner -->|"review and mark High-risk episode handled"| Risk
 
-    Retailer -->|"orders, promises, sites and team assignments"| Evidence
-    Operations -->|"stock, warehouse, shipment, ETA, handover and acceptance events"| Evidence
-    Planner -->|"review, decide action, mark risk episode handled"| Planning
-    Planning -->|"unhandled High first; handled last; evidence and recommendations"| Planner
-    Representative -->|"record inspection and approve replacement quantities"| Replacement
-    Replacement -->|"claim and order evidence"| Representative
-    Replacement -->|"urgent task after authorization; redelivery issue flag"| Management
-    Weather -->|"site forecasts with observation times"| Evidence
-    Travel -->|"travel times for shipment stops"| Evidence
-    Holidays -->|"regional holiday observations"| Evidence
+    Redelivery -->|"claim details"| Rep
+    Rep -->|"inspection and replacement approval"| Redelivery
+    Redelivery -->|"urgent task and issues; High until accepted"| Team
 
-    classDef outside fill:#f5f7fa,stroke:#64748b,color:#111827
-    classDef inside fill:#e8f1ff,stroke:#2563eb,color:#111827
-    class Retailer,Operations,Planner,Representative,Management,Weather,Travel,Holidays outside
-    class Evidence,Risk,Planning,Replacement inside
-    style system fill:#eff6ff,stroke:#1d4ed8,stroke-width:2px
+    classDef external fill:#f5f7fa,stroke:#64748b,color:#111827
+    classDef internal fill:#e8f1ff,stroke:#2563eb,color:#111827
+    class Staff,APIs,Planner,Rep,Team external
+    class Evidence,Risk,Redelivery internal
+    style System fill:#eff6ff,stroke:#1d4ed8,stroke-width:2px
